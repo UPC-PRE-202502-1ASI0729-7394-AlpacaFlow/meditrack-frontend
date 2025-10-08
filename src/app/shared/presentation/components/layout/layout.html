@@ -1,0 +1,46 @@
+<mat-toolbar class="header-toolbar">
+    <div class="header-left">
+        <button mat-icon-button (click)="toggleSidenav()" class="menu-button">
+            <mat-icon>menu</mat-icon>
+        </button>
+        <span class="app-title">MediTrack</span>
+    </div>
+    <div class="header-right">
+        <span class="current-time">{{ currentTime }}</span>
+        <img src="/assets/meditrack-logo.png" alt="MediTrack Logo" class="app-logo">
+    </div>
+</mat-toolbar>
+
+<mat-sidenav-container class="sidenav-container">
+    <mat-sidenav #drawer
+                 class="sidenav"
+                 mode="side"
+                 [opened]="isSidenavOpen"
+                 (closed)="closeSidenav()">
+        <mat-nav-list class="nav-list">
+            <a mat-list-item
+               *ngFor="let item of filteredNavigationItems; trackBy: trackByLabel"
+               [routerLink]="item.link"
+               routerLinkActive="active"
+               (click)="closeSidenav()"
+               class="nav-item">
+                <div class="nav-icon-text">
+                    <mat-icon>{{ item.icon }}</mat-icon>
+                    <span>{{ item.label | translate }}</span>
+                </div>
+            </a>
+
+        </mat-nav-list>
+
+
+
+        <div class="language-switcher-container">
+            <app-language-switcher></app-language-switcher>
+        </div>
+    </mat-sidenav>
+
+
+  <mat-sidenav-content>
+    <router-outlet></router-outlet>
+  </mat-sidenav-content>
+</mat-sidenav-container>

@@ -5,6 +5,8 @@ import { routes } from './app.routes';
 import {provideHttpClient, withFetch} from '@angular/common/http';
 import {provideTranslateService} from '@ngx-translate/core';
 import {provideTranslateHttpLoader} from '@ngx-translate/http-loader';
+import { TimeService } from './shared/infrastructure/time.service';
+import { TimeApiService } from './shared/infrastructure/time-api.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,5 +18,6 @@ export const appConfig: ApplicationConfig = {
       loader: provideTranslateHttpLoader({ prefix: './i18n/', suffix: '.json' }),
       fallbackLang: 'en'
     }),
+    { provide: TimeService, useClass: TimeApiService }
   ]
 };
