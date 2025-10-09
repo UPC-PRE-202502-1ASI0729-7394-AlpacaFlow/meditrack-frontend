@@ -10,22 +10,24 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { Subscription, interval } from 'rxjs';
 import { TimeService } from '../../../infrastructure/time.service';
 import { LanguageSwitcher } from '../language-switcher/language-switcher';
+import {Profile} from "../../../../relatives/presentation/views/profile/profile";
 
 @Component({
   selector: 'app-layout',
-  imports: [
-    CommonModule,
-    RouterOutlet,
-    RouterLink,
-    RouterLinkActive,
-    MatToolbarModule,
-    MatSidenavModule,
-    MatIconModule,
-    MatButtonModule,
-    MatListModule,
-    TranslatePipe,
-    LanguageSwitcher
-  ],
+    imports: [
+        CommonModule,
+        RouterOutlet,
+        RouterLink,
+        RouterLinkActive,
+        MatToolbarModule,
+        MatSidenavModule,
+        MatIconModule,
+        MatButtonModule,
+        MatListModule,
+        TranslatePipe,
+        LanguageSwitcher,
+        Profile
+    ],
   templateUrl: './layout.html',
   standalone: true,
   styleUrl: './layout.css'
@@ -57,7 +59,8 @@ export class Layout implements OnInit, OnDestroy {
   constructor(private timeService: TimeService) {}
 
   ngOnInit(): void {
-    this.startTimeUpdate();
+    // this.startTimeUpdate();
+
   }
 
   ngOnDestroy(): void {
@@ -70,7 +73,7 @@ export class Layout implements OnInit, OnDestroy {
     return this.navigationItems.filter(item => item.roles.includes(this.userRole));
   }
 
-
+/*
   private startTimeUpdate(): void {
     this.timeSubscription = this.timeService.getCurrentTime().subscribe(timeData => {
       let serverDate = new Date(timeData.datetime);
@@ -85,7 +88,7 @@ export class Layout implements OnInit, OnDestroy {
       });
     });
   }
-
+*/
 
   toggleSidenav(): void {
     this.isSidenavOpen = !this.isSidenavOpen;
