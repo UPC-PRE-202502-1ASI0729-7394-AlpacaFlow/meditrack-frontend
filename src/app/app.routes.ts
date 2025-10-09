@@ -22,7 +22,7 @@ export const routes: Routes = [
       {path: 'patient-detail/:id', component: PatientDetail},
       { path: 'support', component: Support },
       { path: 'about', component: About },
-                  
+      ...relativesRoutes,       
       // Página no encontrada
       { path: '**', component: PageNotFound }
     ]
