@@ -9,7 +9,7 @@
   },
   "navigation": {
     "doctor-list": "Lista de Doctores",
-    "patients-list": "Lista de Pacientes",
+    "patient-list": "Lista de Pacientes",
     "support": "Soporte"
   },
   "footer": {
@@ -39,5 +39,53 @@
     "account": "Problema de Cuenta",
     "medication": "Pregunta sobre Medicamentos",
     "general": "Consulta General"
+  },
+  "doctor": {
+    "add": "Agregar Doctor",
+    "empty": "No Hay Doctores Registrados",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "age": "Edad",
+    "specialty": "Especialidad",
+    "email": "Email Institucional",
+    "phoneNumber": "Teléfono",
+    "uploadPhoto": "Subir una foto.",
+    "dragFile": "Arrastra el archivo a esta caja",
+    "preview": "Vista previa:",
+    "deleteConfirm": "¿Desea eliminar este registro?",
+    "confirm": "Confirmar",
+    "noPatientsAssigned": "Sin pacientes asignados",
+    "availablePatients": "Pacientes Disponibles",
+    "selectPatient": "Seleccionar Paciente",
+    "doctorProfile": "Perfil del Doctor",
+    "assignedPatients": "Pacientes Asignados",
+    "backToList": "Volver a la Lista"
+  },
+  "patient": {
+    "firstName": "Nombres",
+    "lastName": "Apellidos",
+    "age": "Edad",
+    "gender": "Genero",
+    "weight": "Peso(kg)",
+    "height": "Estatura(cm)",
+    "dni": "DNI",
+    "uploadPhoto": "Subir Foto",
+    "dragFile": "Adjuntar archivo",
+    "fullName": "Nombre completo",
+    "add": "Agregar paciente",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "preview": "vista previa",
+    "empty": "Sin pacientes",
+    "backToList": "Regresar a Lista"
+
+
   }
+
+
+
 }
