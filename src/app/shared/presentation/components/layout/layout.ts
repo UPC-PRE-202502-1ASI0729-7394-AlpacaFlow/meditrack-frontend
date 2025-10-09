@@ -7,9 +7,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
 import { TranslatePipe } from '@ngx-translate/core';
-import { Subscription, interval } from 'rxjs';
-import { TimeService } from '../../../infrastructure/time.service';
 import { LanguageSwitcher } from '../language-switcher/language-switcher';
+import { Subscription, interval } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
+import { TimeEntity } from '../../../domain/model/time.entity';
+import {TimeApiService} from "../../../infrastructure/time-api.service";
 
 @Component({
   selector: 'app-layout',
@@ -28,37 +30,33 @@ import { LanguageSwitcher } from '../language-switcher/language-switcher';
   ],
   templateUrl: './layout.html',
   standalone: true,
-  styleUrl: './layout.css'
+  styleUrls: ['./layout.css']
 })
 export class Layout implements OnInit, OnDestroy {
   isSidenavOpen = false;
   currentTime: string = '';
   private timeSubscription?: Subscription;
 
-  /*
-  Aca uso userRole como variable fija a admin-clinica, cambiar con un metodo de auth
-  para que funcione para otros, por ahora solo funcionara para mostrar admin-clinica
-   */
   userRole: string = 'admin-clinica';
 
   navigationItems: { link: string; icon: string; label: string; roles: string[] }[] = [
     { link: '/doctor-list', label: 'navigation.doctor-list', icon: 'person_add', roles: ['admin-clinica'] },
-    { link: '/patients-list', label: 'navigation.patients-list', icon: 'people', roles: ['admin-clinica', 'admin-casa-reposo', 'doctors', 'cuidadores'] },
+    { link: '/patient-list', label: 'navigation.patient-list', icon: 'people', roles: ['admin-clinica', 'admin-casa-reposo', 'doctors', 'cuidadores'] },
     { link: '/support', label: 'navigation.support', icon: 'headset_mic', roles: ['admin-clinica', 'admin-casa-reposo', 'doctors', 'cuidadores', 'allegado-premium'] }
   ];
 
-
-
-  trackByLabel(index: number, item: { link: string; icon: string; label: string }): string {
-    return item.label;
-  }
-
-
-  constructor(private timeService: TimeService) {}
+  constructor(private timeApiService: TimeApiService) {}
 
   ngOnInit(): void {
-    this.startTimeUpdate();
+    this.timeSubscription = interval(1000).subscribe(() => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      this.currentTime = `${hours}:${minutes}:${seconds}`;
+    });
   }
+
 
   ngOnDestroy(): void {
     if (this.timeSubscription) {
@@ -70,22 +68,9 @@ export class Layout implements OnInit, OnDestroy {
     return this.navigationItems.filter(item => item.roles.includes(this.userRole));
   }
 
-
-  private startTimeUpdate(): void {
-    this.timeSubscription = this.timeService.getCurrentTime().subscribe(timeData => {
-      let serverDate = new Date(timeData.datetime);
-
-      this.timeSubscription = interval(1000).subscribe(() => {
-        serverDate = new Date(serverDate.getTime() + 1000);
-        this.currentTime = serverDate.toLocaleTimeString('es-PE', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
-      });
-    });
+  trackByLabel(index: number, item: { link: string; icon: string; label: string }): string {
+    return item.label;
   }
-
 
   toggleSidenav(): void {
     this.isSidenavOpen = !this.isSidenavOpen;
@@ -93,5 +78,17 @@ export class Layout implements OnInit, OnDestroy {
 
   closeSidenav(): void {
     this.isSidenavOpen = false;
+  }
+
+  // Formatea el objeto TimeEntity a string HH:mm:ss
+  private formatTime(time: TimeEntity): string {
+    if (time?.datetime) {
+      const date = new Date(time.datetime);
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${hours}:${minutes}:${seconds}`;
+    }
+    return '00:00:00';
   }
 }
