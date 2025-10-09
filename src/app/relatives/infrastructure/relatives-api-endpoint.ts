@@ -4,7 +4,7 @@ import { BaseApiEndpoint } from "../../shared/infrastructure/base-api-enpoint";
 import { Relative } from "../domain/model/relative.entity";
 import { RelativeResource, RelativeResponse } from "./relatives-response";
 import { RelativesAssembler } from "./relatives-assembler";
-import { environments } from "../../../environments/environments.development";
+import { environment } from "../../../environments/environment";
 
 @Injectable({
     providedIn: 'root'
@@ -18,7 +18,7 @@ export class RelativesApiEndpoint extends BaseApiEndpoint<
     constructor(http: HttpClient) {
         super(
             http,
-            `${environments.platformProviderApiBaseUrl}/relatives`,
+            `${environment.platformProviderApiBaseUrl}/relatives`,
             new RelativesAssembler()
         );
     }
