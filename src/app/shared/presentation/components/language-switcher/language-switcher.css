@@ -1,0 +1,120 @@
+:root {
+    --color-unselected: #000000;
+    --color-selected: #0C7BB5;
+    --color-divider: #0C7BB5;
+    --font-size: 14px;
+    --font-weight: 600;
+}
+
+.language-switcher {
+    display: inline-flex;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    align-items: center;
+}
+
+.language-switcher .mat-button-toggle-indicator {
+    display: none !important;
+}
+
+.language-switcher .mat-button-toggle-checked .mat-button-toggle-indicator {
+    display: none !important;
+}
+
+.language-switcher .mat-button-toggle-checked .mat-icon {
+    display: none !important;
+}
+
+.language-switcher .mat-button-toggle {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0;
+    height: auto;
+    min-width: auto !important;
+    border-radius: 0 !important;
+}
+
+.language-switcher .mat-button-toggle-label-content {
+    padding: 0;
+    line-height: 1;
+    font-size: var(--font-size);
+    font-weight: var(--font-weight);
+    color: var(--color-unselected);
+    transition: color 0.2s ease;
+    font-family: 'Roboto', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.language-switcher .mat-button-toggle-checked .mat-button-toggle-label-content {
+    color: var(--color-selected);
+    background: transparent !important;
+}
+
+.language-switcher .mat-button-toggle:not(.mat-button-toggle-checked) .mat-button-toggle-label-content {
+    color: var(--color-unselected);
+    background: transparent !important;
+}
+
+.language-switcher .mat-button-toggle:first-child .mat-button-toggle-label-content {
+    border-right: 2px solid var(--color-divider);
+    padding-right: 8px;
+    margin-right: 0;
+}
+
+.language-switcher .mat-button-toggle:last-child .mat-button-toggle-label-content {
+    padding-left: 8px;
+    margin-left: 0;
+}
+
+.language-switcher .mat-button-toggle:hover:not(.mat-button-toggle-disabled),
+.language-switcher .mat-button-toggle:focus:not(.mat-button-toggle-disabled),
+.language-switcher .mat-button-toggle:active:not(.mat-button-toggle-disabled) {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.language-switcher .mat-button-toggle .mat-ripple {
+    display: none !important;
+}
+
+.language-switcher .mat-button-toggle-group {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.language-switcher .mat-button-toggle-checked::before,
+.language-switcher .mat-button-toggle-checked::after {
+    display: none !important;
+}
+
+.language-switcher .mat-button-toggle-checked .mat-button-toggle-label-content::before,
+.language-switcher .mat-button-toggle-checked .mat-button-toggle-label-content::after {
+    display: none !important;
+}
+
+.language-switcher .mat-button-toggle-checked .mat-button-toggle-label-content {
+    position: relative;
+}
+
+.language-switcher .mat-button-toggle-checked .mat-button-toggle-label-content::before {
+    content: none !important;
+}
+
+.language-switcher.mat-button-toggle-group-appearance-legacy .mat-button-toggle-checked {
+    background-color: transparent !important;
+    color: var(--color-selected) !important;
+}
+
+.language-switcher.mat-button-toggle-group-appearance-legacy .mat-button-toggle-checked .mat-button-toggle-label-content {
+    color: var(--color-selected) !important;
+    background-color: transparent !important;
+}
+
+.language-switcher.mat-button-toggle-group-appearance-legacy .mat-button-toggle-checked::before,
+.language-switcher.mat-button-toggle-group-appearance-legacy .mat-button-toggle-checked::after {
+    display: none !important;
+}
