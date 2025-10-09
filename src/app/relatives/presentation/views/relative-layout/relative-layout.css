@@ -1,0 +1,23 @@
+.sidenav-container {
+    height: 100vh;
+}
+
+.sidenav {
+    width: 250px;
+}
+
+.toggle-btn {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 100;
+}
+
+.nav-item.active {
+    background-color: #e0e0e0;
+}
+
+.mat-mdc-list-item {
+    border-radius: 4px;
+    margin: 8px;
+}

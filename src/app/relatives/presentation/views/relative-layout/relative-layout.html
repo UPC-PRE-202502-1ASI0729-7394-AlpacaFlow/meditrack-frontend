@@ -1,0 +1,28 @@
+ <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav #drawer
+                 mode="side"
+                 [opened]="isSidenavOpen"
+                 class="sidenav">
+        <mat-nav-list class="nav-list">
+            @for (item of navigationItems; track item.link) {
+                <a mat-list-item
+                   [routerLink]="item.link"
+                   routerLinkActive="active"
+                   (click)="closeSidenav()"
+                   class="nav-item">
+                    <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+                    <span matListItemTitle>{{ item.label }}</span>
+                </a>
+            }
+        </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+         <button mat-icon-button
+                class="toggle-btn"
+                (click)="toggleSidenav()">
+            <mat-icon>menu</mat-icon>
+        </button>
+        <router-outlet></router-outlet>
+    </mat-sidenav-content>
+</mat-sidenav-container>

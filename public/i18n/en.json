@@ -1,3 +1,43 @@
 {
-
-}
+    "home": {
+      "title": "Welcome to MediTrack",
+      "content": "Your personal health and medication tracking application."
+    },
+    "about": {
+      "title": "About MediTrack",
+      "content": "Learn more about our application and its features."
+    },
+    "navigation": {
+      "doctor-list": "Doctor List",
+      "patients-list": "Patients List",
+      "support": "Support"
+    },
+    "footer": {
+      "copyright": "© 2024 MediTrack. All rights reserved."
+    },
+    "language": {
+      "switch": "Switch Language"
+    },
+  "page-not-found": {
+    "title": "Page Not Found",
+    "content": "The page <strong>{{invalid_path}}</strong> was not found.",
+    "go-home": "Go Home"
+  },
+  "support": {
+    "title": "Support Center",
+    "description": "Need help? Send us your complaint or claim and our team will contact you shortly.",
+    "fullName": "Full Name",
+    "email": "Email Address",
+    "phone": "Phone number (Optional)",
+    "problemType": "Type of problem",
+    "selectCategory": "Select a category",
+    "problemDescription": "Describe the problem",
+    "describeProblem": "Describe the complaint in detail...",
+    "submitClaim": "Submit a claim",
+    "technical": "Technical Issue",
+    "billing": "Billing Question",
+    "account": "Account Problem",
+    "medication": "Medication Question",
+    "general": "General Inquiry"
+  }
+  }
