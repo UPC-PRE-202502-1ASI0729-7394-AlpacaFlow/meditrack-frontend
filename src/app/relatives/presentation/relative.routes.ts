@@ -19,8 +19,7 @@ export const relativesRoutes: Routes = [
             { path: 'alerts', loadComponent: alertList, data: { title: 'Alerts' } },
             { path: 'profile', loadComponent: profile, data: { title: 'Profile' } },
             { path: 'statistics', loadComponent: statistic, data: { title: 'Statistics' } },
-            { path: 'support', loadComponent: support, data: { title: 'Support' } },
-            { path: '', redirectTo: 'profile', pathMatch: 'full' }
+            { path: 'support', loadComponent: support, data: { title: 'Support' } }
         ]
     }
 ];
