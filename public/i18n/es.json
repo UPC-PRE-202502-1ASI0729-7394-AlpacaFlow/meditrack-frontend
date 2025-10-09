@@ -1,3 +1,43 @@
 {
-
+  "home": {
+    "title": "Bienvenido a MediTrack",
+    "content": "Tu aplicación personal para el seguimiento de salud y medicamentos."
+  },
+  "about": {
+    "title": "Acerca de MediTrack",
+    "content": "Conoce más sobre nuestra aplicación y sus características."
+  },
+  "navigation": {
+    "doctor-list": "Lista de Doctores",
+    "patients-list": "Lista de Pacientes",
+    "support": "Soporte"
+  },
+  "footer": {
+    "copyright": "© 2024 MediTrack. Todos los derechos reservados."
+  },
+  "language": {
+    "switch": "Cambiar Idioma"
+  },
+  "page-not-found": {
+    "title": "Página No Encontrada",
+    "content": "La página <strong>{{invalid_path}}</strong> no fue encontrada.",
+    "go-home": "Ir al Inicio"
+  },
+  "support": {
+    "title": "Centro de Soporte",
+    "description": "¿Necesitas ayuda? Envíanos tu queja o reclamo y nuestro equipo te contactará pronto.",
+    "fullName": "Nombre Completo",
+    "email": "Dirección de Correo",
+    "phone": "Número de teléfono (Opcional)",
+    "problemType": "Tipo de problema",
+    "selectCategory": "Selecciona una categoría",
+    "problemDescription": "Describe el problema",
+    "describeProblem": "Describe la queja en detalle...",
+    "submitClaim": "Enviar reclamo",
+    "technical": "Problema Técnico",
+    "billing": "Pregunta de Facturación",
+    "account": "Problema de Cuenta",
+    "medication": "Pregunta sobre Medicamentos",
+    "general": "Consulta General"
+  }
 }
