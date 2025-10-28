@@ -9,7 +9,7 @@ import {RelativeLayoutComponent} from "./relatives/presentation/views/relative-l
 
 @Component({
   selector: 'app-root',
-    imports: [RouterOutlet, Layout, TemperatureRate, Profile, AlertList, Statistic, RelativeLayoutComponent],
+    imports: [RelativeLayoutComponent, Layout],
   templateUrl: './app.html',
   standalone: true,
   styleUrl: './app.css'

@@ -1,8 +1,23 @@
- <mat-sidenav-container class="sidenav-container">
-    <mat-sidenav #drawer
-                 mode="side"
-                 [opened]="isSidenavOpen"
-                 class="sidenav">
+<mat-toolbar class="header-toolbar">
+    <div class="header-left">
+        <button mat-icon-button (click)="toggleSidenav()" class="menu-button">
+            <mat-icon>menu</mat-icon>
+        </button>
+        <span class="app-title">MediTrack</span>
+    </div>
+    <div class="header-right">
+        <span class="current-time">{{ currentTime }}</span>
+        <img src="/assets/meditrack-logo.png" alt="MediTrack Logo" class="app-logo">
+    </div>
+</mat-toolbar>
+
+<mat-sidenav-container class="sidenav-container">
+    <mat-sidenav
+            #drawer
+            class="sidenav"
+            mode="side"
+            [opened]="isSidenavOpen">
+
         <mat-nav-list class="nav-list">
             @for (item of navigationItems; track item.link) {
                 <a mat-list-item
@@ -15,14 +30,13 @@
                 </a>
             }
         </mat-nav-list>
+
+        <div class="language-switcher-container">
+            <app-language-switcher></app-language-switcher>
+        </div>
     </mat-sidenav>
 
     <mat-sidenav-content>
-         <button mat-icon-button
-                class="toggle-btn"
-                (click)="toggleSidenav()">
-            <mat-icon>menu</mat-icon>
-        </button>
         <router-outlet></router-outlet>
     </mat-sidenav-content>
 </mat-sidenav-container>

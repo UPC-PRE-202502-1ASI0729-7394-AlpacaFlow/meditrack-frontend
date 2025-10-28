@@ -11,7 +11,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-patient-item',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, ReactiveFormsModule, TranslatePipe],
+  imports: [CommonModule, MatButtonModule, MatIconModule, ReactiveFormsModule],
   templateUrl: './patient-item.component.html',
   styleUrls: ['./patient-item.component.css']
 })

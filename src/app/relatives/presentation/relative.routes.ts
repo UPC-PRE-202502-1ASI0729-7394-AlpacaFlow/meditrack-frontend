@@ -13,7 +13,7 @@ const support = () =>
 
 export const relativesRoutes: Routes = [
     {
-        path: 'relative/:id',
+        path: ':id',
         loadComponent: relativeLayout,
         children: [
             { path: 'alerts', loadComponent: alertList, data: { title: 'Alerts' } },
