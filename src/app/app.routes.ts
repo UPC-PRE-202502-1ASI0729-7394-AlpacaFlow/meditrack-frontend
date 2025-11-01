@@ -1,29 +1,41 @@
 import { Routes } from '@angular/router';
 import { Layout } from './shared/presentation/components/layout/layout';
-import { About } from './shared/presentation/views/about/about';
-import { Support } from './shared/presentation/views/support/support';
-import { PageNotFound } from './shared/presentation/views/page-not-found/page-not-found';
-import { DoctorList } from './organization/presentation/views/doctor-list/doctor-list';
-import { DoctorDetail } from './organization/presentation/views/doctor-detail/doctor-detail';
-import {PatientListComponent} from "./organization/presentation/views/patient-list/patient-list";
-import {PatientDetail} from "./organization/presentation/views/patient-detail/patient-detail";
+
+const about = () => import('./shared/presentation/views/about/about').then(m => m.About);
+const support = () => import('./shared/presentation/views/support/support').then(m => m.Support);
+const pageNotFound = () => import('./shared/presentation/views/page-not-found/page-not-found').then(m => m.PageNotFound);
+
+const baseTitle = 'MediTrack';
 
 export const routes: Routes = [
   {
     path: '',
+    redirectTo: 'organization',
+    pathMatch: 'full'
+  },
+  {
+    path: '',
     component: Layout,
     children: [
-      // Ruta predeterminada
-      { path: '', redirectTo: 'doctor-list', pathMatch: 'full' },
-      { path: 'doctor-list', component: DoctorList },
-      { path: 'doctor-detail/:id', component: DoctorDetail },
-      { path: 'patient-list', component: PatientListComponent },
-      {path: 'patient-detail/:id', component: PatientDetail},
-      { path: 'support', component: Support },
-      { path: 'about', component: About },
-                  
-      // Página no encontrada
-      { path: '**', component: PageNotFound }
+        /*
+        {
+        path: 'relative',
+        loadChildren: () =>
+            import('./relatives/presentation/relative.routes').then(m => m.relativesRoutes)
+
+      },
+         */
+      {
+        path: 'organization',
+        loadChildren: () =>
+            import('./organization/presentation/organization.routes').then(m => m.organizationRoutes)
+      }
     ]
+
+  },
+  {
+    path: '**',
+    loadComponent: pageNotFound,
+    data: { title: `${baseTitle} - Page Not Found` }
   }
 ];

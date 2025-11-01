@@ -1,13 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslatePipe } from '@ngx-translate/core';
-import { PatientsApiEndpoint } from '../../../infrastructure/patient-api-endpoint';
+import { OrganizationStore } from '../../../application/organization.store';
 import { Patient } from '../../../domain/model/patient.entity';
-import { ConfirmationDialogComponent } from '../confirmation-dialog.component/confirmation-dialog.component';
-import {PatientItemComponent} from "../patient-item.component/patient-item.component";
-import {PatientFormComponent} from "../patient-form.component/patient-form.component";
+import { DeletePatientDialog } from '../../components/delete-patient-dialog/delete-patient-dialog';
+import {PatientItem} from "../../components/patient-item/patient-item";
+import {PatientForm} from "../patient-form/patient-form";
+import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-patient-list',
@@ -17,33 +19,56 @@ import {PatientFormComponent} from "../patient-form.component/patient-form.compo
     MatButtonModule,
     MatDialogModule,
     TranslatePipe,
-    PatientFormComponent,
-    PatientItemComponent
+    PatientForm,
+    PatientItem
   ],
   templateUrl: './patient-list.html',
   styleUrls: ['./patient-list.css']
 })
-export class PatientListComponent implements OnInit {
-  patients: Patient[] = [];
+export class PatientListComponent implements OnInit, OnDestroy {
   showForm = false;
   editingPatient: Patient | null = null;
+  private routeSubscription?: Subscription;
+  private parentRouteSubscription?: Subscription;
 
   constructor(
-      private patientsApi: PatientsApiEndpoint,
-      private dialog: MatDialog
+      public organizationStore: OrganizationStore,
+      private dialog: MatDialog,
+      private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
-  // Cuando haya sesión, pasar organizationId de la sesión aquí
-  // Por ahora, puedes pasar un valor fijo o null
-  this.loadPatients();
+    // Suscribirse a cambios en el parámetro de la ruta padre (:id en /organization/:id)
+    // Esto asegura que cuando cambie la organización, los datos se recarguen
+    this.parentRouteSubscription = this.route.parent?.paramMap.subscribe(params => {
+      const userIdStr = params.get('id');
+      if (userIdStr) {
+        const userId = parseInt(userIdStr, 10);
+        const organizationId = this.organizationStore.getOrganizationIdByUserId(userId);
+        console.log(`🔄 PatientList: Detected organization change, reloading patients for userId: ${userId}, organizationId: ${organizationId}`);
+        this.organizationStore.loadPatientsByOrganization(organizationId);
+      }
+    });
+
+    // También verificar la ruta actual al inicializar
+    const parentParams = this.route.parent?.snapshot.paramMap;
+    if (parentParams) {
+      const userIdStr = parentParams.get('id');
+      if (userIdStr) {
+        const userId = parseInt(userIdStr, 10);
+        const organizationId = this.organizationStore.getOrganizationIdByUserId(userId);
+        console.log(`🔄 PatientList: Initial load for userId: ${userId}, organizationId: ${organizationId}`);
+        this.organizationStore.loadPatientsByOrganization(organizationId);
+      }
+    }
   }
 
-  loadPatients(organizationId?: number): void {
-    if (organizationId) {
-      this.patientsApi.getByOrganizationId(organizationId).subscribe(patients => this.patients = patients as Patient[]);
-    } else {
-      this.patientsApi.getAll().subscribe(patients => this.patients = patients as Patient[]);
+  ngOnDestroy(): void {
+    if (this.routeSubscription) {
+      this.routeSubscription.unsubscribe();
+    }
+    if (this.parentRouteSubscription) {
+      this.parentRouteSubscription.unsubscribe();
     }
   }
 
@@ -62,30 +87,21 @@ export class PatientListComponent implements OnInit {
   }
 
   onPatientSaved(patient: Patient): void {
-    if (this.editingPatient) {
-      this.patients = this.patients.map(p => p.id === patient.id ? patient : p);
-    } else {
-      this.patients = [...this.patients, patient];
-    }
+    // El store ya fue actualizado en el formulario
+    // Solo necesitamos cerrar el formulario
     this.showForm = false;
   }
-
   onPatientRemoved(patient: Patient): void {
-    const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
+    const dialogRef = this.dialog.open(DeletePatientDialog, {
       width: '400px',
       data: {
-        title: 'Confirmar eliminación',
-        message: '¿Desea eliminar este paciente?',
-        confirmText: 'Eliminar',
-        cancelText: 'Cancelar'
+        patient: patient
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.patientsApi.delete(patient.id).subscribe(() => {
-          this.patients = this.patients.filter(p => p.id !== patient.id);
-        });
+        this.organizationStore.deletePatient(patient.id);
       }
     });
   }

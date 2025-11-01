@@ -14,6 +14,20 @@ export interface PatientResource extends BaseResource {
     dni: string;
     height: number;
     imageUrl: string;
+    signalVitals?: {
+        bloodPressure?: number[][];
+        heartRate?: number[];
+        temperature?: number[];
+        oxygenLevel?: { ox: number }[];
+    };
+    alerts?: Array<{
+        id: number | null;
+        alertTitle: string;
+        date: string;
+        time: string;
+        dataRegistered: string;
+        reason: string;
+    }>;
 }
 
 /**

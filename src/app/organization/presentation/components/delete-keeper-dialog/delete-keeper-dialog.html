@@ -1,0 +1,13 @@
+<h2 mat-dialog-title>{{ 'keeper.deleteKeeperDialog.title' | translate }}</h2>
+<mat-dialog-content>
+  <p>{{ 'keeper.deleteKeeperDialog.message' | translate }}</p>
+  <p><strong>{{ data.keeper.fullName }}</strong></p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">
+    {{ 'keeper.deleteKeeperDialog.cancel' | translate }}
+  </button>
+  <button mat-raised-button color="warn" (click)="onConfirm()">
+    {{ 'keeper.deleteKeeperDialog.confirm' | translate }}
+  </button>
+</mat-dialog-actions>

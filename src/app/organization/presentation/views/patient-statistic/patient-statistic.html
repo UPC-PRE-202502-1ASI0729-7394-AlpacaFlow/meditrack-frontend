@@ -1,0 +1,16 @@
+@if (bloodPressure().length) {
+    <app-blood-pressure [bloodPressure]="bloodPressure()"></app-blood-pressure>
+}
+
+@if (patient()?.signalVitals?.heartRate) {
+    <app-heart-rate [heartRate]="heartRate()"></app-heart-rate>
+}
+
+@if (patient()?.signalVitals?.oxygenLevel) {
+    <app-oxygen-saturation [oxygenLevel]="oxigenLevel()"></app-oxygen-saturation>
+}
+
+@if (patient()?.signalVitals?.temperature) {
+    <app-temperature-rate [temperature]="temperature()"></app-temperature-rate>
+}
+

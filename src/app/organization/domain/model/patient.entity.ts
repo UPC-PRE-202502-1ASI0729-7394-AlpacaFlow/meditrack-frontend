@@ -1,4 +1,6 @@
 import {BaseEntity} from "../../../shared/infrastructure/base-entity";
+import {SignalVitals} from "./signal-vitals.entity";
+import {Alert} from "./alert.entity";
 
 export class Patient implements BaseEntity {
     private _id: number;
@@ -12,6 +14,8 @@ export class Patient implements BaseEntity {
     private _imageUrl: string;
     private _doctorId?: number;
     private _organizationId: number;
+    private _signalVitals?: SignalVitals;
+    private _alerts?: Alert[];
 
 
     constructor(patient: {
@@ -26,6 +30,8 @@ export class Patient implements BaseEntity {
         imageUrl?: string;
         doctorId?: number;
         organizationId: number;
+        signalVitals?: any;
+        alerts?: any[];
     }) {
         this._id = patient.id ?? 0;
         this._firstName = patient.firstName ?? '';
@@ -38,6 +44,8 @@ export class Patient implements BaseEntity {
         this._imageUrl = patient.imageUrl ?? '';
         this._doctorId = patient.doctorId;
         this._organizationId = patient.organizationId;
+        this._signalVitals = patient.signalVitals ? new SignalVitals(patient.signalVitals) : undefined;
+        this._alerts = patient.alerts ? patient.alerts.map(a => new Alert(a)) : [];
     }
 
     get organizationId(): number {
@@ -119,5 +127,13 @@ export class Patient implements BaseEntity {
 
     get fullName(): string {
         return `${this._firstName} ${this._lastName}`;
+    }
+
+    get signalVitals(): SignalVitals | undefined {
+        return this._signalVitals;
+    }
+
+    get alerts(): Alert[] {
+        return this._alerts || [];
     }
 }

@@ -1,0 +1,13 @@
+<h2 mat-dialog-title>{{ 'keeper.unassignSeniorCitizenDialog.title' | translate }}</h2>
+<mat-dialog-content>
+  <p>{{ 'keeper.unassignSeniorCitizenDialog.message' | translate }}</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">
+    {{ 'keeper.unassignSeniorCitizenDialog.cancel' | translate }}
+  </button>
+  <button mat-raised-button color="warn" (click)="onConfirm()">
+    {{ 'keeper.unassignSeniorCitizenDialog.confirm' | translate }}
+  </button>
+</mat-dialog-actions>
+

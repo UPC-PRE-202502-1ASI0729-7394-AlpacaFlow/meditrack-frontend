@@ -4,11 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslatePipe } from '@ngx-translate/core';
-import { DoctorsApiEndpoint } from '../../../infrastructure/doctor-api-endpoint';
-import { PatientsApiEndpoint } from '../../../infrastructure/patient-api-endpoint';
+import { OrganizationStore } from '../../../application/organization.store';
 import { Doctor } from '../../../domain/model/doctor.entity';
 import { Patient } from '../../../domain/model/patient.entity';
+import { UnassignPatientDialog } from '../../components/unassign-patient-dialog/unassign-patient-dialog';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-doctor-detail',
@@ -18,22 +20,24 @@ import { Patient } from '../../../domain/model/patient.entity';
     FormsModule,
     MatButtonModule,
     MatSelectModule,
-    TranslatePipe
+    MatDialogModule,
+    TranslatePipe,
+    MatIconModule
   ],
   templateUrl: './doctor-detail.html',
   styleUrls: ['./doctor-detail.css']
 })
 export class DoctorDetail implements OnInit {
   doctor: Doctor | null = null;
-  assignedPatients: Patient[] = []; // Now using Patient entity
-  availablePatients: Patient[] = []; // Now using Patient entity
+  assignedPatients: Patient[] = [];
+  availablePatients: Patient[] = [];
   selectedPatientId: number | null = null;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private doctorsApi: DoctorsApiEndpoint,
-    private patientsApi: PatientsApiEndpoint // Injecting PatientsApiEndpoint
+    private organizationStore: OrganizationStore,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -44,25 +48,25 @@ export class DoctorDetail implements OnInit {
   }
 
   loadDoctor(id: number): void {
-    this.doctorsApi.getById(id).subscribe(doctor => {
+    // Get doctor from store
+    const doctor = this.organizationStore.doctors().find(d => d.id === id);
+    if (doctor) {
       this.doctor = doctor;
       this.loadAssignedPatients(id);
-      this.loadAvailablePatients();
-    });
+      this.loadAvailablePatients(doctor.organizationId);
+    }
   }
 
   loadAssignedPatients(doctorId: number): void {
-    this.patientsApi.getByDoctorId(doctorId).subscribe((patients) => {
-      this.assignedPatients = patients as Patient[];
-    });
+    // Get patients assigned to this doctor from store
+    this.assignedPatients = this.organizationStore.patients().filter(p => p.doctorId === doctorId);
   }
 
-  loadAvailablePatients(): void {
-    // TEMP: Force organizationId to 1 for assignment testing
-    const orgId = 1;
-    this.patientsApi.getByOrganizationId(orgId).subscribe((patients) => {
-      this.availablePatients = (patients as Patient[]).filter((p: Patient) => !p.doctorId);
-    });
+  loadAvailablePatients(organizationId: number): void {
+    // Get patients from the same organization that are not assigned to any doctor
+    this.availablePatients = this.organizationStore.patients().filter(p => 
+      p.organizationId === organizationId && !p.doctorId
+    );
   }
 
   onPatientSelect(patientId: string): void {
@@ -71,36 +75,67 @@ export class DoctorDetail implements OnInit {
 
   onAssignPatient(): void {
     if (this.selectedPatientId && this.doctor) {
-      const patient = this.availablePatients.find(p => p.id === this.selectedPatientId);
-      if (patient) {
-        const updatedPatient = new Patient({
-          id: patient.id,
-          firstName: patient.firstName,
-          lastName: patient.lastName,
-          age: patient.age,
-          gender: patient.gender,
-          weight: patient.weight,
-          dni: patient.dni,
-          height: patient.height,
-          imageUrl: patient.imageUrl,
-          organizationId: patient.organizationId,
-          doctorId: this.doctor.id
-        });
-        this.patientsApi.update(updatedPatient, updatedPatient.id).subscribe(() => {
-          this.loadAssignedPatients(this.doctor!.id);
-          this.loadAvailablePatients();
-          this.selectedPatientId = null;
-        });
-      }
+      // Use the organization store to assign patient to doctor
+      this.organizationStore.assignPatientToDoctor(this.doctor.id, this.selectedPatientId);
+      
+      // Refresh the lists
+      this.loadAssignedPatients(this.doctor.id);
+      this.loadAvailablePatients(this.doctor.organizationId);
+      this.selectedPatientId = null;
     }
   }
 
+  /**
+   * Obtiene el userId de la ruta padre (organization/:id)
+   */
+  private getUserIdFromRoute(): number | null {
+    // Intentar obtener el userId de la ruta padre
+    let currentRoute: ActivatedRoute | null = this.route.parent;
+    while (currentRoute) {
+      const params = currentRoute.snapshot.paramMap;
+      const userId = params.get('id');
+      if (userId) {
+        return parseInt(userId, 10);
+      }
+      currentRoute = currentRoute.parent;
+    }
+    return null;
+  }
+
   onBackToList(): void {
-    this.router.navigate(['/doctor-list']);
+    const userId = this.getUserIdFromRoute();
+    if (userId) {
+      this.router.navigate(['/organization', userId, 'doctors']);
+    } else {
+      console.error('❌ DoctorDetail: Could not find userId in route, navigating to default');
+      this.router.navigate(['/organization/1/doctors']);
+    }
   }
 
   getPatientFullName(patient: Patient): string {
-    return `${patient.firstName} ${patient.lastName}`;
+    return patient.fullName;
+  }
+
+  onUnassignPatient(patient: Patient, event: Event): void {
+    event.stopPropagation();
+    
+    const dialogRef = this.dialog.open(UnassignPatientDialog, {
+      width: '400px',
+      data: {
+        patient: patient
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && this.doctor) {
+        // Use the organization store to unassign patient from doctor
+        this.organizationStore.unassignPatientFromDoctor(this.doctor.id, patient.id);
+        
+        // Refresh the lists
+        this.loadAssignedPatients(this.doctor.id);
+        this.loadAvailablePatients(this.doctor.organizationId);
+      }
+    });
   }
 
 }

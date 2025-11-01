@@ -34,7 +34,9 @@ export class PatientsAssembler implements BaseAssembler<Patient, PatientResource
             height: resource.height,
             imageUrl: resource.imageUrl,
             organizationId: resource.organizationId,
-            doctorId: resource.doctorId
+            doctorId: resource.doctorId,
+            signalVitals: resource.signalVitals,
+            alerts: resource.alerts
         });
     }
 
@@ -55,7 +57,21 @@ export class PatientsAssembler implements BaseAssembler<Patient, PatientResource
             height: entity.height,
             imageUrl: entity.imageUrl,
             organizationId: entity.organizationId,
-            doctorId: entity.doctorId
+            doctorId: entity.doctorId,
+            signalVitals: entity.signalVitals ? {
+                bloodPressure: entity.signalVitals.bloodPressure,
+                heartRate: entity.signalVitals.heartRate,
+                temperature: entity.signalVitals.temperature,
+                oxygenLevel: entity.signalVitals.oxygenLevel
+            } : undefined,
+            alerts: entity.alerts ? entity.alerts.map(alert => ({
+                id: alert.id,
+                alertTitle: alert.alertTitle,
+                date: alert.date,
+                time: alert.time,
+                dataRegistered: alert.dataRegistered,
+                reason: alert.reason
+            })) : undefined
         } as PatientResource;
     }
 }

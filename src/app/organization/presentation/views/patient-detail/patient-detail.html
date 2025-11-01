@@ -1,21 +1,59 @@
-<div class="patient-detail-container" *ngIf="patient">
-  <h2>{{ 'patient.detailTitle' | translate }}</h2>
-  <div class="patient-info">
-    <p><strong>{{ 'patient.firstName' | translate }}:</strong> {{ patient.firstName }}</p>
-    <p><strong>{{ 'patient.lastName' | translate }}:</strong> {{ patient.lastName }}</p>
-    <p><strong>{{ 'patient.age' | translate }}:</strong> {{ patient.age }}</p>
-    <p><strong>{{ 'patient.gender' | translate }}:</strong> {{ patient.gender }}</p>
-    <p><strong>{{ 'patient.weight' | translate }}:</strong> {{ patient.weight }}</p>
-    <p><strong>{{ 'patient.height' | translate }}:</strong> {{ patient.height }}</p>
-    <p><strong>{{ 'patient.dni' | translate }}:</strong> {{ patient.dni }}</p>
-    <p><strong>{{ 'patient.organizationId' | translate }}:</strong> {{ patient.organizationId }}</p>
-    <p><strong>{{ 'patient.doctor' | translate }}:</strong>
-      <span *ngIf="doctor">{{ doctor.firstName }} {{ doctor.lastName }}</span>
-      <span *ngIf="!doctor">{{ 'patient.noDoctor' | translate }}</span>
-    </p>
-    <div *ngIf="patient.imageUrl">
-      <img [src]="patient.imageUrl" alt="Foto del paciente" class="patient-image" />
+@if (patient()) {
+  <div class="patient-detail-container">
+    <!-- Imagen del paciente -->
+    <div class="patient-image-container">
+      <img [src]="patient()!.imageUrl || '/assets/default-patient.png'" 
+           [alt]="patient()!.fullName" 
+           class="patient-image">
+    </div>
+    
+    <!-- Nombre del paciente -->
+    <h1 class="patient-name">{{ patient()!.fullName }}</h1>
+    
+    <!-- Información del paciente -->
+    <div class="patient-info-grid">
+      <div class="info-column">
+        <div class="info-item">
+          <span class="info-label">{{ 'patient.age' | translate }}:</span>
+          <span class="info-value">{{ patient()!.age }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">{{ 'patient.weight' | translate }}:</span>
+          <span class="info-value">{{ patient()!.weight }}kg</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">{{ 'patient.dni' | translate }}:</span>
+          <span class="info-value">{{ patient()!.dni }}</span>
+        </div>
+      </div>
+      
+      <div class="info-column">
+        <div class="info-item">
+          <span class="info-label">{{ 'patient.gender' | translate }}:</span>
+          <span class="info-value">{{ patient()!.gender }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">{{ 'patient.height' | translate }}:</span>
+          <span class="info-value">{{ patient()!.height }}cm</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">{{ 'patient.doctor' | translate }}:</span>
+          <span class="info-value">
+            @if (doctor()) {
+              Dr. {{ doctor()!.firstName }} {{ doctor()!.lastName }}
+            } @else {
+              Sin doctor asignado
+            }
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Botón de regreso -->
+    <div class="back-button-container">
+      <button mat-raised-button color="accent" (click)="onBackToList()">
+        {{ 'patient.backToList' | translate }}
+      </button>
     </div>
   </div>
-  <button mat-button (click)="onBackToList()">{{ 'patient.backToList' | translate }}</button>
-</div>
+}

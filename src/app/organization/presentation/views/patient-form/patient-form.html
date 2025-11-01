@@ -1,0 +1,70 @@
+<div class="form-container">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="patient-form">
+        <div class="form-grid">
+            <div class="form-field">
+                <label>{{ 'patient.firstName' | translate }}:</label>
+                <input formControlName="firstName" class="form-input" />
+            </div>
+
+            <div class="form-field">
+                <label>{{ 'patient.lastName' | translate }}:</label>
+                <input formControlName="lastName" class="form-input" />
+            </div>
+
+            <div class="form-field">
+                <label>{{ 'patient.age' | translate }}:</label>
+                <input type="number" formControlName="age" class="form-input" />
+            </div>
+
+            <div class="form-field">
+                <label>{{ 'patient.gender' | translate }}:</label>
+                <input formControlName="gender" class="form-input" />
+            </div>
+
+            <div class="form-field">
+                <label>{{ 'patient.weight' | translate }}:</label>
+                <input type="number" formControlName="weight" class="form-input" />
+            </div>
+
+            <div class="form-field">
+                <label>{{ 'patient.height' | translate }}:</label>
+                <input type="number" formControlName="height" class="form-input" />
+            </div>
+
+            <div class="form-field">
+                <label>{{ 'patient.dni' | translate }}:</label>
+                <input formControlName="dni" class="form-input" />
+            </div>
+    </div>
+    <!-- URL de imagen -->
+        <div class="photo-upload">
+            <div class="form-field">
+                <label>{{ 'patient.imageUrl' | translate }} ({{ 'patient.imageUrlHint' | translate }}):</label>
+                <input type="url" formControlName="imageUrl" class="form-input" placeholder="https://ejemplo.com/imagen.jpg" />
+                @if (form.get('imageUrl')?.invalid && form.get('imageUrl')?.touched) {
+                    <div class="error-message">
+                        {{ 'patient.imageUrlError' | translate }}
+                    </div>
+                }
+            </div>
+
+            @if (form.get('imageUrl')?.value && form.get('imageUrl')?.valid) {
+                <div class="preview">
+                    <p class="preview-title">{{ 'patient.preview' | translate }}</p>
+                    <img [src]="form.get('imageUrl')?.value" [alt]="'patient.photo' | translate" class="preview-image" 
+                         (error)="$event.target.src='/assets/default-patient.png'" />
+                </div>
+            }
+        </div>
+
+        <!-- Botones -->
+        <div class="form-actions">
+            <button type="submit" [disabled]="form.invalid" class="save-btn">
+                {{ 'patient.save' | translate }}
+            </button>
+            <button type="button" (click)="onCancel()" class="cancel-btn">
+                {{ 'patient.cancel' | translate }}
+            </button>
+        </div>
+    </form>
+</div>

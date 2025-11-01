@@ -1,0 +1,49 @@
+<!-- Lista de senior citizens -->
+@if (!showForm) {
+    <div class="senior-citizen-list-container">
+            <!-- Estado vacío -->
+            @if (organizationStore.filteredSeniorCitizens().length === 0) {
+                <div class="empty-state">
+                    <div class="empty-content">
+                        <p class="empty-text">{{ 'senior-citizen.empty' | translate }}</p>
+                        @if (organizationStore.getCurrentUserRole() === 'admin-casa-reposo') {
+                            <button mat-raised-button color="primary" class="add-senior-citizen-btn" (click)="openAddSeniorCitizenForm()">
+                                {{ 'senior-citizen.add' | translate }}
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Lista de items -->
+            @if (organizationStore.filteredSeniorCitizens().length > 0) {
+                <div class="senior-citizen-items">
+                    @for (seniorCitizen of organizationStore.filteredSeniorCitizens(); track trackById($index, seniorCitizen)) {
+                        <app-senior-citizen-item
+                                [seniorCitizen]="seniorCitizen"
+                                (edit)="openEditSeniorCitizenForm($event)"
+                                (remove)="onSeniorCitizenRemoved($event)">
+                        </app-senior-citizen-item>
+                    }
+                </div>
+            }
+
+            <!-- Botón de agregar cuando hay senior citizens (solo para admin-casa-reposo) -->
+            @if (organizationStore.filteredSeniorCitizens().length > 0 && organizationStore.getCurrentUserRole() === 'admin-casa-reposo') {
+                <div class="add-button">
+                    <button mat-raised-button color="primary" (click)="openAddSeniorCitizenForm()">
+                        {{ 'senior-citizen.add' | translate }}
+                    </button>
+                </div>
+            }
+    </div>
+}
+
+<!-- Formulario de crear/editar -->
+@if (showForm) {
+    <app-senior-citizen-form
+            [seniorCitizen]="editingSeniorCitizen"
+            (saved)="onSeniorCitizenSaved($event)"
+            (cancel)="closeForm()">
+    </app-senior-citizen-form>
+}

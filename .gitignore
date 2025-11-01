@@ -45,3 +45,6 @@ Thumbs.db
 .vscode/extensions.json
 .vscode/launch.json
 .vscode/tasks.json
+
+# Database files (use only Server/db.json)
+/db.json

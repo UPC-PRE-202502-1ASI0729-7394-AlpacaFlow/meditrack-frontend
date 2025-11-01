@@ -10,7 +10,13 @@
     "navigation": {
       "doctor-list": "Doctor List",
       "patient-list": "Patients List",
-      "support": "Support"
+      "senior-citizen-list": "Senior Citizen List",
+      "keeper-list": "Keeper List",
+      "support": "Support",
+      "patientProfile": "Patient Profile",
+      "seniorCitizenProfile": "Senior Citizen Profile",
+      "statistics": "Statistics",
+      "alerts": "Alerts"
     },
     "footer": {
       "copyright": "© 2024 MediTrack. All rights reserved."
@@ -41,6 +47,7 @@
     "general": "General Inquiry"
   },
   "doctor": {
+    "title": "Dr. ",
     "add": "Add Doctor",
     "empty": "There Are No Registered Doctors",
     "edit": "Edit",
@@ -63,7 +70,32 @@
     "selectPatient": "Select Patient",
     "doctorProfile": "Doctor Profile",
     "assignedPatients": "Assigned Patients",
-    "backToList": "Back to List"
+    "backToList": "Back to List",
+    "unassignPatient": "Unassign Patient",
+    "emailHint": "Email will be automatically generated with the institutional domain",
+    "emailPlaceholderExample": "email@example.com",
+    "emailPlaceholder": "firstname.lastname",
+    "imageUrl": "Image URL",
+    "imageUrlHint": "Enter a valid image URL",
+    "imageUrlError": "Must be a valid image URL",
+    "unassignPatientDialog": {
+      "title": "Unassign Patient",
+      "message": "Do you want to unassign this patient from the doctor? The patient will remain registered in the system.",
+      "confirm": "Unassign",
+      "cancel": "Cancel"
+    },
+    "deleteDoctorDialog": {
+      "title": "Delete Doctor",
+      "message": "Are you sure you want to delete this doctor? This action cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "required": "is required",
+      "requiredFemale": "is required",
+      "emailInvalid": "is required and must be valid",
+      "photoRequired": "Photo is required"
+    }
   },
   "patient": {
     "firstName": "First Name",
@@ -80,8 +112,139 @@
     "save": "Save",
     "cancel": "Cancel",
     "preview": "Preview",
-    "empty": "No patients",
-    "backToList": "Back to List"
-
+    "empty": "There Are No Registered Patients",
+    "backToList": "Back to List",
+    "noDoctor": "No doctor assigned",
+    "detailTitle": "Patient Details",
+    "doctor": "Doctor",
+    "imageUrl": "Image Url",
+    "imageUrlHint": "Image Url hint",
+    "imageUrlError": "Error",
+    "deletePatientDialog": {
+      "title": "Delete Patient",
+      "message": "Are you sure you want to delete this patient? This action cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "alert": {
+      "date": "Date",
+      "time": "Time",
+      "dataRegistered": "Data Registered",
+      "reason": "Reason",
+      "noAlerts": "No alerts available"
+    },
+    "statistics": {
+      "bloodPressure": "Blood Pressure (mmHg)",
+      "bloodPressureTitle": "Blood Pressure (Diastolic & Systolic) - Last 7 Days",
+      "bloodPressureTooltip": "Diastolic: {{diastolic}}, Systolic: {{systolic}}",
+      "heartRate": "Heart Rate (bpm)",
+      "heartRateTitle": "Heart Rate - Last 7 Days",
+      "oxygenSaturation": "Oxygen Saturation (%) - Last 7 Days",
+      "temperature": "Body Temperature - Last 7 Days",
+      "dayOfWeek": "Day of the Week",
+      "mmhg": "mmHg",
+      "bpm": "bpm",
+      "spO2": "SpO₂ (%)",
+      "temperatureUnit": "Temperature (°C)",
+      "diastolic": "Diastolic",
+      "systolic": "Systolic"
+    }
+  },
+  "senior-citizen": {
+    "fullName": "Full Name",
+    "age": "Age",
+    "gender": "Gender",
+    "weight": "Weight",
+    "height": "Height",
+    "dni": "DNI",
+    "deviceIot": "Device IoT",
+    "empty": "Empty List of Senior Citizens",
+    "add": "Add Senior Citizen",
+    "uploadPhoto": "Upload Photo",
+    "dragFile": "Drag File",
+    "save": "Save",
+    "cancel": "Cancel",
+    "backToList": "Back To List",
+    "keeper": "Keeper",
+    "noKeeper": "No keeper assigned",
+    "imageUrl": "Image Url",
+    "imageUrlHint": "Image Url Update",
+    "imageUrlPlaceholder": "https://example.com/image.jpg",
+    "imageUrlError": "Must be a valid image URL",
+    "clickToView": "Click to view details",
+    "edit": "Edit",
+    "delete": "Delete",
+    "photo": "Photo",
+    "preview": "Preview",
+    "deleteSeniorCitizenDialog": {
+      "title": "Delete Senior Citizen",
+      "message": "Are you sure you want to delete this senior citizen? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "units": {
+      "kg": "kg",
+      "cm": "cm"
+    },
+    "alert": {
+      "date": "Date",
+      "time": "Time",
+      "dataRegistered": "Data Registered",
+      "reason": "Reason",
+      "noAlerts": "No alerts available"
+    },
+    "statistics": {
+      "bloodPressure": "Blood Pressure (mmHg)",
+      "bloodPressureTitle": "Blood Pressure (Diastolic & Systolic) - Last 7 Days",
+      "bloodPressureTooltip": "Diastolic: {{diastolic}}, Systolic: {{systolic}}",
+      "heartRate": "Heart Rate (bpm)",
+      "heartRateTitle": "Heart Rate - Last 7 Days",
+      "oxygenSaturation": "Oxygen Saturation (%) - Last 7 Days",
+      "temperature": "Body Temperature - Last 7 Days",
+      "dayOfWeek": "Day of the Week",
+      "mmhg": "mmHg",
+      "bpm": "bpm",
+      "spO2": "SpO₂ (%)",
+      "temperatureUnit": "Temperature (°C)",
+      "diastolic": "Diastolic",
+      "systolic": "Systolic"
+    }
+  },
+  "keeper": {
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "age": "Age",
+    "email": "Email",
+    "specialty": "Specialty",
+    "phoneNumber": "Phone Number",
+    "uploadPhoto": "Upload Photo",
+    "dragFile": "Drag File",
+    "save": "Save",
+    "cancel": "Cancel",
+    "empty": "Empty List of Keepers",
+    "add": "Add Keeper",
+    "backToList": "Back to List",
+    "selectSeniorCitizen": "Select a Senior Citizen",
+    "assignedSeniorCitizens": "Assigned Senior Citizen",
+    "availableSeniorCitizens": "Available Senior Citizen",
+    "title": "Keeper",
+    "emailHint": "Email will be automatically generated with the institutional domain",
+    "emailPlaceholderExample": "email@example.com",
+    "emailPlaceholder": "firstname.lastname",
+    "imageUrl": "Image URL",
+    "imageUrlHint": "Enter a valid image URL",
+    "imageUrlError": "Must be a valid image URL",
+    "errors": {
+      "required": "is required",
+      "requiredFemale": "is required",
+      "emailInvalid": "is required and must be valid",
+      "photoRequired": "Photo is required"
+    },
+    "deleteKeeperDialog": {
+      "title": "Delete Keeper",
+      "message": "Are you sure you want to delete this keeper?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    }
   }
-  }
+}
