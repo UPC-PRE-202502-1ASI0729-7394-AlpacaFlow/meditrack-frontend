@@ -6,7 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-support',
@@ -41,10 +41,14 @@ export class Support {
     { value: 'general', label: 'support.general' }
   ];
 
+  constructor(private translateService: TranslateService) {}
+
   onSubmit() {
     // Simulación estática - no envía datos reales
     console.log('Support form submitted:', this.supportForm);
-    alert('Thank you for your submission! Our team will contact you shortly.');
+    this.translateService.get('support.submissionSuccess').subscribe(message => {
+      alert(message);
+    });
     
     // Reset form
     this.supportForm = {

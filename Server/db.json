@@ -1,74 +1,160 @@
 {
-  "doctors": [
+  "users": [
     {
       "id": 1,
-      "firstName": "asdasdadf",
-      "lastName": "akakaka",
-      "age": 123,
-      "email": "ada@addd.com",
-      "specialty": "asdad",
-      "phoneNumber": "123123",
-      "imageUrl": "https://www.unir.net/wp-content/uploads/2024/04/Cuales-son-los-pacientes-geriatricos-y-que-tipos-de-cuidados-requieren2.webp",
-      "organizationId": 1
+      "email": "admin1@example.com",
+      "role": "admin"
     },
     {
       "id": 2,
-      "firstName": "luis",
-      "lastName": "ddadad",
-      "age": 13213,
-      "email": "1add@asd.com",
-      "specialty": "asddsa",
-      "phoneNumber": "asdasd",
-      "imageUrl": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
-      "organizationId": 1
+      "email": "admin2@example.com",
+      "role": "admin"
     },
     {
       "id": 3,
-      "firstName": "asdas",
-      "lastName": "adda",
-      "age": 123,
-      "email": "asd@asd.com",
-      "specialty": "asd",
-      "phoneNumber": "123",
-      "imageUrl": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
-      "organizationId": 1
+      "email": "doctor1@example.com",
+      "role": "doctor"
     },
     {
       "id": 4,
-      "firstName": "miguel",
-      "lastName": "asda",
-      "age": 123312,
-      "email": "miguel.asda@clinOrtega.com",
-      "specialty": "qweeqw",
-      "phoneNumber": "123123",
-      "imageUrl": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
-      "organizationId": 1
-    },
-    {
-      "id": 5,
-      "firstName": "carlos",
-      "lastName": "fernan",
-      "age": 29,
-      "email": "carlos.fernan@clinOrtega.com",
-      "specialty": "xd",
-      "phoneNumber": "919191",
-      "imageUrl": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
-      "organizationId": 1
+      "email": "caregiver1@example.com",
+      "role": "caregiver"
     }
   ],
-  "patients": [
+  "organizations": [
     {
       "id": 1,
-      "firstName": "jose",
-      "lastName": "aaaaaa",
-      "age": 111,
-      "gender": "daasdadd",
-      "weight": 13,
-      "dni": "ad11",
-      "height": 1231,
-      "imageUrl": "https://www.unir.net/wp-content/uploads/2024/04/Cuales-son-los-pacientes-geriatricos-y-que-tipos-de-cuidados-requieren2.webp",
-      "organizationId": 1,
-      "doctorId": 4,
+      "name": "Clínica Ortega",
+      "type": "clinica"
+    },
+    {
+      "id": 2,
+      "name": "Casa de Reposo San Juan",
+      "type": "resident"
+    }
+  ],
+  "admins": [
+    {
+      "id": 1,
+      "org_id": 1,
+      "user_id": "1",
+      "first_name": "María",
+      "last_name": "González"
+    },
+    {
+      "id": 2,
+      "org_id": 2,
+      "user_id": "2",
+      "first_name": "Juan",
+      "last_name": "Pérez"
+    }
+  ],
+  "doctors": [
+    {
+      "id": 1,
+      "org_id": 1,
+      "user_id": "3",
+      "first_name": "Luis",
+      "last_name": "Herrera",
+      "specialty": "Neurología",
+      "phone_number": "+1234567890",
+      "age": 45,
+      "email": "luis.herrera@clinicaortega.com",
+      "image_url": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
+      "assignedSeniorIds": [
+        1
+      ]
+    },
+    {
+      "id": 2,
+      "org_id": 1,
+      "first_name": "Ana",
+      "last_name": "Paredes",
+      "specialty": "Cardiología",
+      "phone_number": "+1234567891",
+      "age": 38,
+      "email": "ana.paredes@clinicaortega.com",
+      "image_url": "https://www.unir.net/wp-content/uploads/2024/04/Cuales-son-los-pacientes-geriatricos-y-que-tipos-de-cuidados-requieren2.webp",
+      "assignedSeniorIds": [
+        1,
+        5
+      ]
+    },
+    {
+      "id": 3,
+      "org_id": 1,
+      "first_name": "miguel",
+      "last_name": "Hernandes",
+      "specialty": "alcss",
+      "phone_number": "123123",
+      "age": 31,
+      "email": "miguel.hernandes@clinicaortega.com",
+      "image_url": "https://www.jaketeamwork.com/wp-content/uploads/2022/04/Drogueria-de-gran-trayectoria.png",
+      "assignedSeniorIds": [
+        1
+      ]
+    },
+    {
+      "id": 4,
+      "org_id": 1,
+      "first_name": "juan",
+      "last_name": "gonzalez",
+      "specialty": "asdasd",
+      "phone_number": "1333",
+      "age": 41,
+      "email": "juan.gonzalez@clinicaortega.com",
+      "image_url": "https://xurxodev.com/content/images/2020/06/bloc-pattern-clean-architecture-reactjs.png",
+      "assignedSeniorIds": [
+        4
+      ]
+    }
+  ],
+  "caregivers": [
+    {
+      "id": 1,
+      "org_id": 2,
+      "user_id": "4",
+      "first_name": "Ricardo",
+      "last_name": "Torres",
+      "phone_number": "+1234567892",
+      "age": 32,
+      "email": "ricardo.torres@casaderepososanjuan.com",
+      "specialty": "Cuidado Geriátrico",
+      "image_url": "https://www.unir.net/wp-content/uploads/2024/04/Cuales-son-los-pacientes-geriatricos-y-que-tipos-de-cuidados-requieren2.webp",
+      "assignedSeniorIds": [
+        3
+      ]
+    },
+    {
+      "id": 2,
+      "org_id": 2,
+      "first_name": "Laura",
+      "last_name": "Campos",
+      "phone_number": "+1234567893",
+      "age": 28,
+      "email": "laura.campos@casaderepososanjuan.com",
+      "specialty": "Asistencia Personal",
+      "image_url": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
+      "assignedSeniorIds": [
+        3
+      ]
+    }
+  ],
+  "senior-citizens": [
+    {
+      "id": 1,
+      "org_id": 1,
+      "first_name": "Carlos",
+      "last_name": "López",
+      "dni": "12345678",
+      "birth_date": "1945-03-15",
+      "gender": "male",
+      "height": 1.7,
+      "weight": 68,
+      "profile_image": "https://static7.depositphotos.com/1024916/785/i/950/depositphotos_7854131-stock-photo-portrait-of-a-grandfather.jpg",
+      "device_id": "IOT-001",
+      "assignedDoctorId": 1,
+      "assignedCaregiverId": null,
       "signalVitals": {
         "bloodPressure": [
           [
@@ -150,29 +236,23 @@
           "time": "10:15",
           "dataRegistered": "130/90 mmHg",
           "reason": "La presión arterial superó los límites normales"
-        },
-        {
-          "id": 2,
-          "alertTitle": "Frecuencia cardíaca irregular",
-          "date": "2025-11-01",
-          "time": "14:30",
-          "dataRegistered": "85 bpm",
-          "reason": "Variación significativa en la frecuencia cardíaca"
         }
       ]
     },
     {
       "id": 2,
-      "firstName": "daniel",
-      "lastName": "qeqwe",
-      "age": 1321,
-      "gender": "adasd",
-      "weight": 12312,
-      "dni": "12313",
-      "height": 131,
-      "imageUrl": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
-      "organizationId": 1,
-      "doctorId": 4,
+      "org_id": 1,
+      "first_name": "María",
+      "last_name": "García",
+      "dni": "87654321",
+      "birth_date": "1950-07-22",
+      "gender": "female",
+      "height": 1.6,
+      "weight": 62,
+      "profile_image": "https://www.unir.net/wp-content/uploads/2024/04/Cuales-son-los-pacientes-geriatricos-y-que-tipos-de-cuidados-requieren2.webp",
+      "device_id": "IOT-002",
+      "assignedDoctorId": 1,
+      "assignedCaregiverId": null,
       "signalVitals": {
         "bloodPressure": [
           [
@@ -246,184 +326,22 @@
           }
         ]
       },
-      "alerts": [
-        {
-          "id": 3,
-          "alertTitle": "Temperatura elevada",
-          "date": "2025-11-01",
-          "time": "09:00",
-          "dataRegistered": "37.2°C",
-          "reason": "Temperatura por encima del rango normal"
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "firstName": "adrian",
-      "lastName": "asdasd",
-      "age": 12312,
-      "gender": "asddsa",
-      "weight": 123,
-      "dni": "123",
-      "height": 123,
-      "imageUrl": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
-      "organizationId": 1,
-      "doctorId": 5,
       "alerts": []
-    }
-  ],
-  "keepers": [
-    {
-      "id": 1,
-      "firstName": "axdadad",
-      "lastName": "asdadds",
-      "age": 123,
-      "email": "asdas@asd.com",
-      "specialty": "sasds",
-      "phoneNumber": "123123",
-      "imageUrl": "https://www.unir.net/wp-content/uploads/2024/04/Cuales-son-los-pacientes-geriatricos-y-que-tipos-de-cuidados-requieren2.webp",
-      "organizationId": 1
-    },
-    {
-      "id": 2,
-      "firstName": "adasd",
-      "lastName": "ddd",
-      "age": 123,
-      "email": "sdas@asd.com",
-      "specialty": "asda",
-      "phoneNumber": "123312",
-      "imageUrl": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
-      "organizationId": 2
     },
     {
       "id": 3,
-      "firstName": "juan",
-      "lastName": "adadd",
-      "age": 123123,
-      "email": "31@asd.com",
-      "specialty": "wqweqwe",
-      "phoneNumber": "1312123",
-      "imageUrl": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
-      "organizationId": 2
-    }
-  ],
-  "senior-citizens": [
-    {
-      "id": 1,
-      "fullName": "alll",
-      "age": 122,
-      "gender": "adad",
-      "weight": 12313,
-      "dni": "122",
-      "height": 123,
-      "imageUrl": "https://www.unir.net/wp-content/uploads/2024/04/Cuales-son-los-pacientes-geriatricos-y-que-tipos-de-cuidados-requieren2.webp",
-      "organizationId": 2,
-      "keeperId": 2,
-      "deviceIot": "adssad",
-      "signalVitals": {
-        "bloodPressure": [
-          [
-            88,
-            125
-          ],
-          [
-            85,
-            120
-          ],
-          [
-            90,
-            128
-          ],
-          [
-            87,
-            122
-          ],
-          [
-            89,
-            126
-          ],
-          [
-            86,
-            124
-          ],
-          [
-            91,
-            129
-          ]
-        ],
-        "heartRate": [
-          72,
-          70,
-          74,
-          71,
-          73,
-          69,
-          75
-        ],
-        "temperature": [
-          36.5,
-          36.6,
-          36.4,
-          36.7,
-          36.5,
-          36.6,
-          36.5
-        ],
-        "oxygenLevel": [
-          {
-            "ox": 96
-          },
-          {
-            "ox": 97
-          },
-          {
-            "ox": 96
-          },
-          {
-            "ox": 98
-          },
-          {
-            "ox": 97
-          },
-          {
-            "ox": 96
-          },
-          {
-            "ox": 97
-          }
-        ]
-      },
-      "alerts": [
-        {
-          "id": 1,
-          "alertTitle": "Temperatura baja",
-          "date": "2025-11-01",
-          "time": "08:00",
-          "dataRegistered": "36.4°C",
-          "reason": "Temperatura por debajo del rango normal"
-        },
-        {
-          "id": 2,
-          "alertTitle": "Oxígeno en rango normal",
-          "date": "2025-11-01",
-          "time": "12:30",
-          "dataRegistered": "97%",
-          "reason": "Saturación de oxígeno estable"
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "fullName": "luisito",
-      "age": 123123,
-      "gender": "adadadd",
-      "weight": 113123,
-      "dni": "1232231231",
-      "height": 32123,
-      "imageUrl": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
-      "organizationId": 2,
-      "keeperId": 2,
-      "deviceIot": "adada",
+      "org_id": 2,
+      "first_name": "Roberto",
+      "last_name": "Martínez",
+      "dni": "11223344",
+      "birth_date": "1948-11-10",
+      "gender": "male",
+      "height": 1.75,
+      "weight": 72,
+      "profile_image": "https://www.future-doctor.de/wp-content/uploads/2024/08/shutterstock_2480850611.jpg.webp",
+      "device_id": "IOT-003",
+      "assignedDoctorId": null,
+      "assignedCaregiverId": 1,
       "signalVitals": {
         "bloodPressure": [
           [
@@ -499,7 +417,7 @@
       },
       "alerts": [
         {
-          "id": 3,
+          "id": 2,
           "alertTitle": "Presión arterial elevada",
           "date": "2025-11-01",
           "time": "10:00",
@@ -507,6 +425,57 @@
           "reason": "La presión arterial está por encima del rango normal"
         }
       ]
+    },
+    {
+      "id": 4,
+      "org_id": 1,
+      "first_name": "mariano",
+      "last_name": "meza",
+      "birth_date": "1950-01-23",
+      "age": 75,
+      "gender": "asdasd",
+      "weight": 98,
+      "dni": "1313",
+      "height": 133,
+      "profile_image": "https://xurxodev.com/content/images/2020/06/bloc-pattern-clean-architecture-reactjs.png",
+      "device_id": "casdasd",
+      "assignedDoctorId": null,
+      "assignedCaregiverId": null,
+      "alerts": []
+    },
+    {
+      "id": 5,
+      "org_id": 1,
+      "first_name": "alejo",
+      "last_name": "asdas",
+      "birth_date": "0121-12-12",
+      "age": 1903,
+      "gender": "asdad",
+      "weight": 123,
+      "dni": "123123",
+      "height": 12313123,
+      "profile_image": "https://xurxodev.com/content/images/2020/03/business-logic-component.png",
+      "device_id": "asdasd",
+      "assignedDoctorId": null,
+      "assignedCaregiverId": null,
+      "alerts": []
+    },
+    {
+      "id": 6,
+      "org_id": 2,
+      "first_name": "miguelito",
+      "last_name": "afafa",
+      "birth_date": "2311-03-21",
+      "age": -286,
+      "gender": "sadasd",
+      "weight": 123123,
+      "dni": "13132",
+      "height": 123123,
+      "profile_image": "https://i.pinimg.com/736x/67/e6/36/67e6360cb61bc90fb9414a9537f41b7c.jpg",
+      "device_id": "adsdsa",
+      "assignedDoctorId": null,
+      "assignedCaregiverId": null,
+      "alerts": []
     }
   ]
 }

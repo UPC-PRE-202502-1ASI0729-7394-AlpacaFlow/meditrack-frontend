@@ -88,7 +88,12 @@ export class SeniorCitizenListComponent implements OnInit, OnDestroy {
 
   onSeniorCitizenSaved(seniorCitizen: SeniorCitizen): void {
     // El store ya fue actualizado en el formulario
-    // Solo necesitamos cerrar el formulario
+    // Recargar la lista de senior citizens para asegurar que solo se muestren los de la organización actual
+    const organizationId = this.organizationStore.getCurrentOrganizationId();
+    if (organizationId > 0) {
+      this.organizationStore.loadSeniorCitizensByOrganization(organizationId);
+    }
+    // Cerrar el formulario
     this.showForm = false;
   }
 

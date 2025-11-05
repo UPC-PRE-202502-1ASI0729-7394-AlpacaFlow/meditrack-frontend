@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Doctor } from "../../../domain/model/doctor.entity";
 import {MatIconModule} from "@angular/material/icon";
+import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-doctor-item',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, TranslatePipe],
   templateUrl: './doctor-item.html',
   styleUrls: ['./doctor-item.css']
 })

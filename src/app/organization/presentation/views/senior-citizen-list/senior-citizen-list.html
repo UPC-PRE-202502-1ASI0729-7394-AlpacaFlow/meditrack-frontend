@@ -6,7 +6,7 @@
                 <div class="empty-state">
                     <div class="empty-content">
                         <p class="empty-text">{{ 'senior-citizen.empty' | translate }}</p>
-                        @if (organizationStore.getCurrentUserRole() === 'admin-casa-reposo') {
+                        @if (organizationStore.getCurrentUserRole() === 'admin' || organizationStore.getCurrentUserRole() === 'admin-casa-reposo') {
                             <button mat-raised-button color="primary" class="add-senior-citizen-btn" (click)="openAddSeniorCitizenForm()">
                                 {{ 'senior-citizen.add' | translate }}
                             </button>
@@ -29,7 +29,7 @@
             }
 
             <!-- Botón de agregar cuando hay senior citizens (solo para admin-casa-reposo) -->
-            @if (organizationStore.filteredSeniorCitizens().length > 0 && organizationStore.getCurrentUserRole() === 'admin-casa-reposo') {
+            @if (organizationStore.filteredSeniorCitizens().length > 0 && (organizationStore.getCurrentUserRole() === 'admin' || organizationStore.getCurrentUserRole() === 'admin-casa-reposo')) {
                 <div class="add-button">
                     <button mat-raised-button color="primary" (click)="openAddSeniorCitizenForm()">
                         {{ 'senior-citizen.add' | translate }}

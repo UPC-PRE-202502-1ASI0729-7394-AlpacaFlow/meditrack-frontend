@@ -48,9 +48,9 @@ export class TemperatureRate implements AfterViewInit, OnDestroy, OnChanges {
         gradient.addColorStop(0.5, "rgba(255, 255, 0, 0.3)");
         gradient.addColorStop(1, "rgba(0, 123, 255, 0.2)");
 
-        const temperatureLabel = this.translateService.instant('patient.statistics.temperatureUnit');
-        const temperatureTitle = this.translateService.instant('patient.statistics.temperature');
-        const dayOfWeekLabel = this.translateService.instant('patient.statistics.dayOfWeek');
+        const temperatureLabel = this.translateService.instant('senior-citizen.statistics.temperatureUnit');
+        const temperatureTitle = this.translateService.instant('senior-citizen.statistics.temperature');
+        const dayOfWeekLabel = this.translateService.instant('senior-citizen.statistics.dayOfWeek');
 
         this.chartInstance = new Chart(ctx, {
             type: 'line',

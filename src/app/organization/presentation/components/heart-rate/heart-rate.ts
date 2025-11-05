@@ -42,9 +42,9 @@ export class HeartRate implements AfterViewInit, OnDestroy, OnChanges {
         const ctx = this.chartCanvas.nativeElement.getContext('2d');
         if (!ctx) return;
 
-        const heartRateLabel = this.translateService.instant('patient.statistics.heartRate');
-        const heartRateTitle = this.translateService.instant('patient.statistics.heartRateTitle');
-        const bpmLabel = this.translateService.instant('patient.statistics.bpm');
+        const heartRateLabel = this.translateService.instant('senior-citizen.statistics.heartRate');
+        const heartRateTitle = this.translateService.instant('senior-citizen.statistics.heartRateTitle');
+        const bpmLabel = this.translateService.instant('senior-citizen.statistics.bpm');
 
         this.chartInstance = new Chart(ctx, {
             type: 'line',

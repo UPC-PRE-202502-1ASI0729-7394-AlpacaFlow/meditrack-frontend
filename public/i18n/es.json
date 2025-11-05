@@ -11,7 +11,7 @@
     "doctor-list": "Lista de Doctores",
     "patient-list": "Lista de Pacientes",
     "senior-citizen-list": "Lista de adultos mayores",
-    "keeper-list": "Lista de cuidadores",
+    "caregiver-list": "Lista de cuidadores",
     "support": "Soporte",
     "patientProfile": "Perfil del Paciente",
     "seniorCitizenProfile": "Perfil del Adulto Mayor",
@@ -40,6 +40,7 @@
     "problemDescription": "Describe el problema",
     "describeProblem": "Describe la queja en detalle...",
     "submitClaim": "Enviar reclamo",
+    "submissionSuccess": "¡Gracias por tu envío! Nuestro equipo te contactará pronto.",
     "technical": "Problema Técnico",
     "billing": "Pregunta de Facturación",
     "account": "Problema de Cuenta",
@@ -70,6 +71,10 @@
     "selectPatient": "Seleccionar Paciente",
     "doctorProfile": "Perfil del Doctor",
     "assignedPatients": "Pacientes Asignados",
+    "assignedSeniorCitizens": "Adultos Mayores Asignados",
+    "availableSeniorCitizens": "Adultos Mayores Disponibles",
+    "selectSeniorCitizen": "Seleccionar Adulto Mayor",
+    "unassignSeniorCitizen": "Desasignar Adulto Mayor",
     "backToList": "Volver a la Lista",
     "unassignPatient": "Desasignar Paciente",
     "emailHint": "El correo se generará automáticamente con el dominio institucional",
@@ -77,7 +82,11 @@
     "emailPlaceholder": "nombre.apellido",
     "imageUrl": "URL de Imagen",
     "imageUrlHint": "Ingrese una URL válida de imagen",
+    "imageUrlPlaceholder": "https://ejemplo.com/imagen.jpg",
     "imageUrlError": "Debe ser una URL válida de imagen",
+    "photo": "Foto",
+    "clickToView": "Hacer clic para ver detalles, doble clic para abrir",
+    "assignedTo": "Asignado a",
     "unassignPatientDialog": {
       "title": "Desasignar Paciente",
       "message": "¿Desea desasignar a este paciente del doctor? El paciente seguirá registrado en el sistema.",
@@ -94,7 +103,9 @@
       "required": "es requerido",
       "requiredFemale": "es requerida",
       "emailInvalid": "es requerido y debe ser válido",
-      "photoRequired": "La foto es requerida"
+      "photoRequired": "La foto es requerida",
+      "cannotAssignToCaregiver": "Este adulto mayor ya está asignado a un cuidador. No se puede asignar a un doctor (exclusión mutua).",
+      "assignError": "Error al asignar adulto mayor"
     }
   },
   "patient": {
@@ -152,12 +163,18 @@
   },
   "senior-citizen": {
     "fullName": "Nombre Completo",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "birthDate": "Fecha de Nacimiento",
     "age": "Edad",
     "gender": "Genero",
     "weight": "Peso",
     "height": "Altura",
     "dni": "DNI",
     "deviceIot": "Dispositivo IoT",
+    "doctor": "Doctor",
+    "assignedTo": "Asignado a",
+    "notAssigned": "No asignado",
     "empty": "Lista Vacia de Ciudadano Mayores",
     "add": "Agregar Ciudadano Mayor",
     "uploadPhoto": "Subir fotografia",
@@ -165,22 +182,28 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "backToList": "Regresar a la lista",
-    "keeper": "Cuidador",
-    "noKeeper": "Sin keeper asignado",
+    "caregiver": "Cuidador",
+    "noCaregiver": "Sin cuidador asignado",
     "imageUrl": "Imagen Url",
     "imageUrlHint": "Imagen Url Adjunta",
     "imageUrlPlaceholder": "https://ejemplo.com/imagen.jpg",
     "imageUrlError": "Debe ser una URL válida de imagen",
+    "photo": "Foto",
     "clickToView": "Hacer clic para ver detalles",
     "edit": "Editar",
     "delete": "Eliminar",
-    "photo": "Foto",
     "preview": "Vista previa",
     "deleteSeniorCitizenDialog": {
       "title": "Eliminar Ciudadano Mayor",
       "message": "¿Está seguro de que desea eliminar este ciudadano mayor? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
+    },
+    "unassignSeniorCitizenDialog": {
+      "title": "Desasignar Adulto Mayor",
+      "message": "¿Desea desasignar a este adulto mayor del cuidador? El adulto mayor seguirá registrado en el sistema.",
+      "cancel": "Cancelar",
+      "confirm": "Desasignar"
     },
     "units": {
       "kg": "kg",
@@ -210,7 +233,7 @@
       "systolic": "Sistólica"
     }
   },
-  "keeper": {
+  "caregiver": {
     "firstName": "Nombre",
     "lastName": "Apellido",
     "age": "Edad",
@@ -233,19 +256,26 @@
     "emailPlaceholder": "nombre.apellido",
     "imageUrl": "URL de Imagen",
     "imageUrlHint": "Ingrese una URL válida de imagen",
+    "imageUrlPlaceholder": "https://ejemplo.com/imagen.jpg",
     "imageUrlError": "Debe ser una URL válida de imagen",
+    "photo": "Foto",
+    "assignedTo": "Asignado a",
     "errors": {
       "required": "es requerido",
       "requiredFemale": "es requerida",
       "emailInvalid": "es requerido y debe ser válido",
-      "photoRequired": "La foto es requerida"
+      "photoRequired": "La foto es requerida",
+      "cannotAssignToDoctor": "Este adulto mayor ya está asignado a un doctor. No se puede asignar a un cuidador (exclusión mutua).",
+      "assignError": "Error al asignar adulto mayor"
     },
-    "deleteKeeperDialog": {
+    "deleteCaregiverDialog": {
       "title": "Eliminar Cuidador",
       "message": "¿Estás seguro de que quieres eliminar este cuidador?",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
-    }
+    },
+    "unassignSeniorCitizen": "Desasignar Adulto Mayor",
+    "clickToView": "Hacer clic para ver detalles"
   }
 
 

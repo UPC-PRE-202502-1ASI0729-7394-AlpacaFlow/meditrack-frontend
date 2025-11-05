@@ -27,8 +27,9 @@ export class SeniorCitizenForm implements OnChanges {
     // Get organizationId from store (patrón de relatives)
     const organizationId = this.organizationStore.getCurrentOrganizationId() || 0;
     this.form = this.fb.group({
-      fullName: ['', Validators.required],
-      age: [null, [Validators.required, Validators.min(0)]],
+      firstName: ['', Validators.required],
+      lastName: ['', Validators.required],
+      birthDate: ['', Validators.required],
       gender: ['', Validators.required],
       weight: [null, [Validators.required, Validators.min(0)]],
       height: [null, [Validators.required, Validators.min(0)]],
@@ -42,8 +43,11 @@ export class SeniorCitizenForm implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['seniorCitizen'] && this.seniorCitizen) {
       // Precargar form si estamos editando
+      const birthDateStr = this.seniorCitizen.birthDate.toISOString().split('T')[0]; // Format: YYYY-MM-DD
       this.form.patchValue({
-        fullName: this.seniorCitizen.fullName,
+        firstName: this.seniorCitizen.firstName,
+        lastName: this.seniorCitizen.lastName,
+        birthDate: birthDateStr,
         age: this.seniorCitizen.age,
         gender: this.seniorCitizen.gender,
         weight: this.seniorCitizen.weight,
@@ -79,26 +83,37 @@ export class SeniorCitizenForm implements OnChanges {
 
     const seniorCitizen = new SeniorCitizen({
       id: this.seniorCitizen ? this.seniorCitizen.id : 0,
-      fullName: this.form.value.fullName,
-      age: Number(this.form.value.age),
+      organizationId: organizationId, // Use from user context, not form value
+      firstName: this.form.value.firstName,
+      lastName: this.form.value.lastName,
+      birthDate: this.form.value.birthDate, // Will be converted to Date in constructor
+      age: this.form.value.age ? Number(this.form.value.age) : undefined, // Optional, calculated from birthDate
       gender: this.form.value.gender,
       weight: Number(this.form.value.weight),
       height: Number(this.form.value.height),
       dni: this.form.value.dni,
       imageUrl: this.form.value.imageUrl || '/assets/default-senior-citizen.png',
-      deviceIot: this.form.value.deviceIot,
-      organizationId: organizationId // Use from user context, not form value
+      deviceIot: this.form.value.deviceIot
     });
 
-    if (this.seniorCitizen) {
-      this.organizationStore.updateSeniorCitizen(seniorCitizen);
-    } else {
-      // Crear senior citizen
-      this.organizationStore.addSeniorCitizen(seniorCitizen);
-    }
+    // Log para verificar que el organizationId se está estableciendo correctamente
+    console.log(`📝 Creating/updating senior citizen with organizationId: ${organizationId}`, seniorCitizen);
     
-    // Emitir el evento para cerrar el formulario
-    this.saved.emit(seniorCitizen);
+    try {
+      if (this.seniorCitizen) {
+        this.organizationStore.updateSeniorCitizen(seniorCitizen);
+      } else {
+        // Crear senior citizen
+        this.organizationStore.addSeniorCitizen(seniorCitizen);
+      }
+      
+      // Emitir el evento para cerrar el formulario
+      this.saved.emit(seniorCitizen);
+    } catch (error) {
+      console.error('❌ Error creating/updating senior citizen:', error);
+      // Mostrar error al usuario (puedes agregar un servicio de notificación aquí)
+      alert(error instanceof Error ? error.message : 'Error creating/updating senior citizen');
+    }
   }
 
   onCancel(): void {

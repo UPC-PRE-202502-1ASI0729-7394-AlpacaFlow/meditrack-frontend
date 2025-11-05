@@ -44,9 +44,9 @@ export class OxygenSaturation implements AfterViewInit, OnDestroy, OnChanges {
         if (!ctx) return;
 
         const data = this.oxygenLevel?.map(d => d.ox) ?? [];
-        const oxygenSaturationTitle = this.translateService.instant('patient.statistics.oxygenSaturation');
-        const dayOfWeekLabel = this.translateService.instant('patient.statistics.dayOfWeek');
-        const spO2Label = this.translateService.instant('patient.statistics.spO2');
+        const oxygenSaturationTitle = this.translateService.instant('senior-citizen.statistics.oxygenSaturation');
+        const dayOfWeekLabel = this.translateService.instant('senior-citizen.statistics.dayOfWeek');
+        const spO2Label = this.translateService.instant('senior-citizen.statistics.spO2');
 
         this.chartInstance = new Chart(ctx, {
             type: 'line',

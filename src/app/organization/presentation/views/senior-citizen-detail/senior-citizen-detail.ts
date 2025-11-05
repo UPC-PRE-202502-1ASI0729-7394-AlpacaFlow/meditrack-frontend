@@ -1,11 +1,12 @@
-import { Component, OnInit, OnDestroy, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { OrganizationStore } from '../../../application/organization.store';
 import { SeniorCitizen } from '../../../domain/model/senior-citizen.entity';
-import { Keeper } from '../../../domain/model/keeper.entity';
+import { Caregiver } from '../../../domain/model/caregiver.entity';
+import { Doctor } from '../../../domain/model/doctor.entity';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -17,11 +18,45 @@ import { Subscription } from 'rxjs';
 })
 export class SeniorCitizenDetail implements OnInit, OnDestroy {
   seniorCitizen = computed(() => this.organizationStore.selectedSeniorCitizen());
-  keeper = computed(() => {
+  
+  doctor = computed(() => {
     const sc = this.seniorCitizen();
-    if (sc && sc.keeperId) {
-      return this.organizationStore.keepers().find(k => k.id === sc.keeperId) || null;
+    if (sc && sc.assignedDoctorId) {
+      // Get the assigned doctor (senior citizens can only have one doctor)
+      const doctorId = sc.assignedDoctorId;
+      return this.organizationStore.doctors().find(d => d.id === doctorId) || null;
     }
+    return null;
+  });
+
+  caregiver = computed(() => {
+    const sc = this.seniorCitizen();
+    if (sc && sc.assignedCaregiverId) {
+      // Get the assigned caregiver (senior citizens can only have one caregiver)
+      const caregiverId = sc.assignedCaregiverId;
+      return this.organizationStore.caregivers().find(k => k.id === caregiverId) || null;
+    }
+    return null;
+  });
+
+  doctorTitle = signal<string>('Dr.');
+
+  /**
+   * Determines if the senior citizen is assigned to a doctor or caregiver
+   */
+  assignedPerson = computed(() => {
+    const sc = this.seniorCitizen();
+    if (!sc) return null;
+    
+    if (sc.assignedDoctorId) {
+      const doctor = this.doctor();
+      const title = this.doctorTitle();
+      return doctor ? { type: 'doctor' as const, person: doctor, name: `${title} ${doctor.fullName}` } : null;
+    } else if (sc.assignedCaregiverId) {
+      const caregiver = this.caregiver();
+      return caregiver ? { type: 'caregiver' as const, person: caregiver, name: caregiver.fullName } : null;
+    }
+    
     return null;
   });
 
@@ -30,8 +65,14 @@ export class SeniorCitizenDetail implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private organizationStore: OrganizationStore
-  ) {}
+    private organizationStore: OrganizationStore,
+    private translateService: TranslateService
+  ) {
+    // Load doctor title translation
+    this.translateService.get('doctor.title').subscribe(title => {
+      this.doctorTitle.set(title);
+    });
+  }
 
   ngOnInit(): void {
     // Load senior citizen on init

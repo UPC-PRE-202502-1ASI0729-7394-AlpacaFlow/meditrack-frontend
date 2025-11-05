@@ -2,68 +2,46 @@ import { computed, Injectable, Signal, signal } from '@angular/core';
 import { retry, filter, take } from 'rxjs';
 
 import { Doctor } from '../domain/model/doctor.entity';
-import { Patient } from '../domain/model/patient.entity';
-import { Keeper } from '../domain/model/keeper.entity';
+import { Caregiver } from '../domain/model/caregiver.entity';
 import { SeniorCitizen } from '../domain/model/senior-citizen.entity';
+import { Organization } from '../domain/model/organization.entity';
 import { OrganizationApi } from '../infrastructure/organization-api';
 
 /**
- * State management store for doctors and patients using Angular signals.
+ * State management store for doctors, caregivers, and senior citizens using Angular signals.
  */
 @Injectable({
   providedIn: 'root'
 })
 export class OrganizationStore {
-  // SIMULACIÓN: En la realidad hay UN SOLO usuario, pero por ahora simulamos dos escenarios
-  // El userId y organizationId son campos distintos
-  // El bounded context organization trabaja con el organizationId del usuario
-  private USER_EXAMPLE_DATA_1 = {
-    "id": 1,                    // userId (ID del usuario)
-    "organizationId": 1,        // organizationId (ID de la organización a la que pertenece)
-    "email": "organizacion1@gmail.com",
-    "password": "org1123",
-    "role": "admin-clinica",    // organizationId 1 = admin-clinica
-    "institutionEmail": "admin@clinOrtega.com",
-    "institutionName": "Clínica Ortega",
-    "tin": "12345678901"
-  };
 
-  private USER_EXAMPLE_DATA_2 = {
-    "id": 2,                    // userId (ID del usuario)
-    "organizationId": 2,        // organizationId (ID de la organización a la que pertenece)
-    "email": "organizacion2@gmail.com",
-    "password": "org2123",
-    "role": "admin-casa-reposo", // organizationId 2 = admin-casa-reposo
-    "institutionEmail": "admin@casareposoSanJuan.com",
-    "institutionName": "Casa de Reposo San Juan",
-    "tin": "98765432109"
-  };
+  // Tabla Users: id, email, role
+  private readonly USERS = [
+    { id: 1, email: "admin1@example.com", role: "admin" },
+    { id: 2, email: "admin2@example.com", role: "admin" },
+    { id: 3, email: "doctor1@example.com", role: "doctor" },
+    { id: 4, email: "caregiver1@example.com", role: "caregiver" }
+  ];
 
-  private USER_EXAMPLE_DATA_3 = {
-    "id": 3,                    // userId (ID del usuario doctor)
-    "organizationId": 1,        // organizationId (ID de la organización a la que pertenece)
-    "email": "miguel.asda@clinOrtega.com",
-    "password": "doctor123",    // Contraseña temporal establecida por el admin-clinica
-    "role": "doctor",           // Rol de doctor
-    "institutionEmail": "admin@clinOrtega.com",
-    "institutionName": "Clínica Ortega",
-    "tin": "12345678901",
-    "entityId": 4,              // Referencia al doctor.id (opcional)
-    "entityType": "doctor"      // Tipo de entidad asociada
-  };
+  // Tabla Organizations: id, name, type
+  private readonly ORGANIZATIONS = [
+    { id: 1, name: "Clínica Ortega", type: "clinica" as const },
+    { id: 2, name: "Casa de Reposo San Juan", type: "resident" as const }
+  ];
 
-  private USER_EXAMPLE_DATA_4 = {
-    "id": 4,                    // userId (ID del usuario keeper)
-    "organizationId": 2,        // organizationId (ID de la organización a la que pertenece)
-    "email": "adasd.ddd@casareposoSanJuan.com",
-    "password": "keeper123",    // Contraseña temporal establecida por el admin-casa-reposo
-    "role": "keeper",           // Rol de keeper
-    "institutionEmail": "admin@casareposoSanJuan.com",
-    "institutionName": "Casa de Reposo San Juan",
-    "tin": "98765432109",
-    "entityId": 2,              // Referencia al keeper.id (keeper con id 2 en db.json)
-    "entityType": "keeper"      // Tipo de entidad asociada
-  };
+  // Tabla Admins: id, organizationId, userId, firstName, lastName
+  private readonly ADMINS = [
+    { id: 1, organizationId: 1, userId: "1", firstName: "María", lastName: "González" },
+    { id: 2, organizationId: 2, userId: "2", firstName: "Juan", lastName: "Pérez" }
+  ];
+
+  // Tabla Doctors: id, organizationId, userId, firstName, lastName, ...
+  // Se carga desde la API, pero para simulación de entityId:
+  // userId: 3 -> doctorId: 1 (se obtendrá de la API)
+  
+  // Tabla Caregivers: id, organizationId, userId, firstName, lastName, ...
+  // Se carga desde la API, pero para simulación de entityId:
+  // userId: 4 -> caregiverId: 1 (se obtendrá de la API)
 
   
 
@@ -73,68 +51,60 @@ export class OrganizationStore {
   private readonly doctorsSignal = signal<Doctor[]>([]);
   readonly doctors = this.doctorsSignal.asReadonly();
 
-  // Patient signals
-  readonly patientCount = computed(() => this.patients().length);
-  private readonly patientsSignal = signal<Patient[]>([]);
-  readonly patients = this.patientsSignal.asReadonly();
-
-  // Selected patient signal (for doctor viewing patient details)
-  private readonly selectedPatientSignal = signal<Patient | null>(null);
-  readonly selectedPatient = this.selectedPatientSignal.asReadonly();
-
-  // Selected senior citizen signal (for keeper viewing senior citizen details)
+  // Selected senior citizen signal (for doctors and caregivers viewing senior citizen details)
   private readonly selectedSeniorCitizenSignal = signal<SeniorCitizen | null>(null);
   readonly selectedSeniorCitizen = this.selectedSeniorCitizenSignal.asReadonly();
 
-  // Filtered patients based on user role (for doctors, only show assigned patients)
-  readonly filteredPatients = computed(() => {
-    const role = this.getCurrentUserRole();
-    const allPatients = this.patients();
-    
-    // If user is a doctor, filter by assigned patients
-    if (role === 'doctor') {
-      const doctorId = this.getCurrentUserEntityId();
-      if (doctorId) {
-        return allPatients.filter(patient => patient.doctorId === doctorId);
-      }
-      return []; // No doctorId found, return empty array
-    }
-    
-    // For admin-clinica or other roles, show all patients in the organization
-    return allPatients;
-  });
-
-  // Keeper signals
-  readonly keeperCount = computed(() => this.keepers().length);
-  private readonly keepersSignal = signal<Keeper[]>([]);
-  readonly keepers = this.keepersSignal.asReadonly();
+  // Caregiver signals
+  readonly caregiverCount = computed(() => this.caregivers().length);
+  private readonly caregiversSignal = signal<Caregiver[]>([]);
+  readonly caregivers = this.caregiversSignal.asReadonly();
 
   // Senior Citizen signals
   readonly seniorCitizenCount = computed(() => this.seniorCitizens().length);
   private readonly seniorCitizensSignal = signal<SeniorCitizen[]>([]);
   readonly seniorCitizens = this.seniorCitizensSignal.asReadonly();
 
-  // Filtered senior citizens based on user role (for keepers, only show assigned senior citizens)
+  // Filtered senior citizens based on user role (for doctors and caregivers, only show assigned senior citizens)
   readonly filteredSeniorCitizens = computed(() => {
     const role = this.getCurrentUserRole();
+    const organizationId = this.getCurrentOrganizationId();
     const allSeniorCitizens = this.seniorCitizens();
     
-    // If user is a keeper, filter by assigned senior citizens
-    if (role === 'keeper') {
-      const keeperId = this.getCurrentUserEntityId();
-      if (keeperId) {
-        return allSeniorCitizens.filter(seniorCitizen => seniorCitizen.keeperId === keeperId);
+    // Always filter by organizationId to ensure multi-tenant isolation
+    const seniorCitizensInOrganization = organizationId > 0
+      ? allSeniorCitizens.filter(sc => sc.organizationId === organizationId)
+      : [];
+    
+    // If user is a doctor, filter by assigned senior citizens using doctor's assignedSeniorIds
+    if (role === 'doctor') {
+      const doctorId = this.getCurrentUserEntityId();
+      if (doctorId) {
+        // Filter by assignment AND organization (check if senior citizen is assigned to this doctor)
+        return seniorCitizensInOrganization.filter(sc => 
+          sc.assignedDoctorId === doctorId && 
+          sc.organizationId === organizationId
+        );
       }
-      return []; // No keeperId found, return empty array
+      return []; // No doctorId found, return empty array
     }
     
-    // For admin-casa-reposo or other roles, show all senior citizens in the organization
-    return allSeniorCitizens;
+    // If user is a caregiver, filter by assigned senior citizens using caregiver's assignedSeniorIds
+    if (role === 'caregiver') {
+      const caregiverId = this.getCurrentUserEntityId();
+      if (caregiverId) {
+        // Filter by assignment AND organization (check if senior citizen is assigned to this caregiver)
+        return seniorCitizensInOrganization.filter(sc => 
+          sc.assignedCaregiverId === caregiverId && 
+          sc.organizationId === organizationId
+        );
+      }
+      return []; // No caregiverId found, return empty array
+    }
+    
+    // For admin or other roles, show all senior citizens in the organization
+    return seniorCitizensInOrganization;
   });
-
-  // Assignment management
-  private readonly assignmentsSignal = signal<Record<string, string[]>>({});
-  readonly assignments = this.assignmentsSignal.asReadonly();
 
   // Current user ID signal (userId del usuario actual)
   // Se establece cuando se llama a loadOrganizationData(userId)
@@ -145,6 +115,10 @@ export class OrganizationStore {
   // Se establece cuando se llama a loadOrganizationData(userId)
   private readonly currentOrganizationIdSignal = signal<number | null>(null);
   readonly currentOrganizationId = this.currentOrganizationIdSignal.asReadonly();
+
+  // Current organization entity signal
+  private readonly currentOrganizationSignal = signal<Organization | null>(null);
+  readonly currentOrganization = this.currentOrganizationSignal.asReadonly();
 
   // Loading and error states
   private readonly loadingSignal = signal<boolean>(false);
@@ -163,56 +137,91 @@ export class OrganizationStore {
    * @param userId - The user ID. Uses default if not provided.
    */
   loadOrganizationData(userId?: number): void {
+    if (!userId) {
+      userId = 1; // Default
+    }
+
     // 1. BUSCAR USUARIO POR SU ID
-    const user = userId === this.USER_EXAMPLE_DATA_1.id
-      ? this.USER_EXAMPLE_DATA_1
-      : userId === this.USER_EXAMPLE_DATA_2.id
-        ? this.USER_EXAMPLE_DATA_2
-        : userId === this.USER_EXAMPLE_DATA_3.id
-          ? this.USER_EXAMPLE_DATA_3
-          : userId === this.USER_EXAMPLE_DATA_4.id
-            ? this.USER_EXAMPLE_DATA_4
-            : this.USER_EXAMPLE_DATA_1; // por defecto
+    const user = this.USERS.find(u => u.id === userId);
+    if (!user) {
+      console.error(`❌ User with id ${userId} not found`);
+      return;
+    }
 
-    // 2. ESTABLECER EL userId Y organizationId ACTUAL EN EL STORE
+    // 2. OBTENER organizationId SEGÚN EL ROL DEL USUARIO
+    let organizationId: number = 0;
+
+    if (user.role === 'admin') {
+      // Para admin: buscar en Admins por userId
+      const admin = this.ADMINS.find(a => a.userId === userId.toString());
+      if (admin) {
+        organizationId = admin.organizationId;
+      } else {
+        console.error(`❌ Admin with userId ${userId} not found`);
+        return;
+      }
+    } else if (user.role === 'doctor') {
+      // Para doctor: buscar en Doctors (se carga desde API)
+      // Por ahora usamos un mapeo temporal, pero en producción se obtendría de la API
+      // En producción: buscar doctor por userId en la API -> obtener organizationId
+      // Por ahora asumimos que doctor con userId 3 pertenece a organizationId 1
+      organizationId = 1; // Clínica Ortega
+    } else if (user.role === 'caregiver') {
+      // Para caregiver: buscar en Caregivers (se carga desde API)
+      // Por ahora usamos un mapeo temporal
+      // En producción: buscar caregiver por userId en la API -> obtener organizationId
+      // Por ahora asumimos que caregiver con userId 4 pertenece a organizationId 2
+      organizationId = 2; // Casa de Reposo San Juan
+    }
+
+    if (organizationId === 0) {
+      console.error(`❌ Could not determine organizationId for user ${userId} with role ${user.role}`);
+      return;
+    }
+
+    // 3. ESTABLECER EL userId Y organizationId ACTUAL EN EL STORE
     this.currentUserIdSignal.set(user.id);
-    this.currentOrganizationIdSignal.set(user.organizationId);
-
-    // 3. USAR EL organizationId DEL USUARIO para cargar los datos
-    const organizationId = user.organizationId;
+    this.currentOrganizationIdSignal.set(organizationId);
 
     console.log(`✅ Loading organization data for ${user.email} (userId: ${user.id}, organizationId: ${organizationId}, role: ${user.role})`);
 
     // 4. CARGAR TODOS LOS DATOS DE LA ORGANIZACIÓN usando organizationId
+    // Note: Assignments are included in the entities (assignedSeniorIds for doctors/caregivers, assignedDoctorId/assignedCaregiverId for senior citizens - single assignment only)
+    this.loadOrganizationById(organizationId);
     this.loadDoctorsByOrganization(organizationId);
-    this.loadPatientsByOrganization(organizationId);
-    this.loadKeepersByOrganization(organizationId);
+    this.loadCaregiversByOrganization(organizationId);
     this.loadSeniorCitizensByOrganization(organizationId);
   }
 
   /**
    * Gets the organization ID for a given user ID.
+   * Busca el organizationId según el rol del usuario:
+   * - admin: busca en Admins por userId
+   * - doctor: busca en Doctors por userId (desde API)
+   * - caregiver: busca en Caregivers por userId (desde API)
    * @param userId - The user ID
    * @returns The organization ID of that user. Returns 0 if user not found.
    */
   getOrganizationIdByUserId(userId: number): number {
-    // Buscar el usuario por su ID
-    const user = userId === this.USER_EXAMPLE_DATA_1.id
-      ? this.USER_EXAMPLE_DATA_1
-      : userId === this.USER_EXAMPLE_DATA_2.id
-        ? this.USER_EXAMPLE_DATA_2
-        : userId === this.USER_EXAMPLE_DATA_3.id
-          ? this.USER_EXAMPLE_DATA_3
-          : userId === this.USER_EXAMPLE_DATA_4.id
-            ? this.USER_EXAMPLE_DATA_4
-            : null;
-    
+    const user = this.USERS.find(u => u.id === userId);
     if (!user) {
       return 0;
     }
-    
-    // Retornar el organizationId del usuario
-    return user.organizationId;
+
+    if (user.role === 'admin') {
+      const admin = this.ADMINS.find(a => a.userId === userId.toString());
+      return admin ? admin.organizationId : 0;
+    } else if (user.role === 'doctor') {
+      // En producción: buscar doctor por userId en la API
+      // Por ahora retornamos 1 (Clínica Ortega)
+      return 1;
+    } else if (user.role === 'caregiver') {
+      // En producción: buscar caregiver por userId en la API
+      // Por ahora retornamos 2 (Casa de Reposo San Juan)
+      return 2;
+    }
+
+    return 0;
   }
 
   /**
@@ -231,32 +240,29 @@ export class OrganizationStore {
 
   /**
    * Gets the current user's institution email domain.
-   * Extrae el dominio del correo institucional (ej: '@clinOrtega.com').
+   * Obtiene el dominio de la organización basándose en el organizationId.
    * @returns The institution email domain. Returns empty string if no userId is set or no domain found.
    */
   getInstitutionEmailDomain(): string {
-    const currentUserId = this.currentUserIdSignal();
-    if (currentUserId === null) {
+    const organizationId = this.getCurrentOrganizationId();
+    if (organizationId === 0) {
       return '';
     }
     
-    const user = currentUserId === this.USER_EXAMPLE_DATA_1.id ? this.USER_EXAMPLE_DATA_1 :
-                 currentUserId === this.USER_EXAMPLE_DATA_2.id ? this.USER_EXAMPLE_DATA_2 :
-                 currentUserId === this.USER_EXAMPLE_DATA_3.id ? this.USER_EXAMPLE_DATA_3 :
-                 currentUserId === this.USER_EXAMPLE_DATA_4.id ? this.USER_EXAMPLE_DATA_4 :
-                 null;
-    
-    if (!user || !user.institutionEmail) {
+    const organization = this.ORGANIZATIONS.find(o => o.id === organizationId);
+    if (!organization) {
       return '';
     }
     
-    // Extraer el dominio del correo (ej: 'admin@clinOrtega.com' -> '@clinOrtega.com')
-    const emailParts = user.institutionEmail.split('@');
-    if (emailParts.length === 2) {
-      return `@${emailParts[1]}`;
-    }
+    // Generar dominio basado en el nombre de la organización
+    // Ej: "Clínica Ortega" -> "@clinicaortega.com"
+    const domain = organization.name
+      .toLowerCase()
+      .replace(/\s+/g, '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''); // Remover acentos
     
-    return '';
+    return `@${domain}.com`;
   }
 
   /**
@@ -264,18 +270,13 @@ export class OrganizationStore {
    * @returns The institution name. Returns empty string if no userId is set.
    */
   getInstitutionName(): string {
-    const currentUserId = this.currentUserIdSignal();
-    if (currentUserId === null) {
+    const organizationId = this.getCurrentOrganizationId();
+    if (organizationId === 0) {
       return '';
     }
     
-    const user = currentUserId === this.USER_EXAMPLE_DATA_1.id ? this.USER_EXAMPLE_DATA_1 :
-                 currentUserId === this.USER_EXAMPLE_DATA_2.id ? this.USER_EXAMPLE_DATA_2 :
-                 currentUserId === this.USER_EXAMPLE_DATA_3.id ? this.USER_EXAMPLE_DATA_3 :
-                 currentUserId === this.USER_EXAMPLE_DATA_4.id ? this.USER_EXAMPLE_DATA_4 :
-                 null;
-    
-    return user?.institutionName || '';
+    const organization = this.ORGANIZATIONS.find(o => o.id === organizationId);
+    return organization ? organization.name : '';
   }
 
   /**
@@ -289,17 +290,8 @@ export class OrganizationStore {
       return '';
     }
     
-    const user = currentUserId === this.USER_EXAMPLE_DATA_1.id
-      ? this.USER_EXAMPLE_DATA_1
-      : currentUserId === this.USER_EXAMPLE_DATA_2.id
-        ? this.USER_EXAMPLE_DATA_2
-        : currentUserId === this.USER_EXAMPLE_DATA_3.id
-          ? this.USER_EXAMPLE_DATA_3
-          : currentUserId === this.USER_EXAMPLE_DATA_4.id
-            ? this.USER_EXAMPLE_DATA_4
-            : this.USER_EXAMPLE_DATA_1;
-    
-    return user.role;
+    const user = this.USERS.find(u => u.id === currentUserId);
+    return user ? user.role : '';
   }
 
   /**
@@ -308,22 +300,16 @@ export class OrganizationStore {
    * @returns The role of the user
    */
   getUserRoleByUserId(userId: number): string {
-    const user = userId === this.USER_EXAMPLE_DATA_1.id
-      ? this.USER_EXAMPLE_DATA_1
-      : userId === this.USER_EXAMPLE_DATA_2.id
-        ? this.USER_EXAMPLE_DATA_2
-        : userId === this.USER_EXAMPLE_DATA_3.id
-          ? this.USER_EXAMPLE_DATA_3
-          : userId === this.USER_EXAMPLE_DATA_4.id
-            ? this.USER_EXAMPLE_DATA_4
-            : this.USER_EXAMPLE_DATA_1;
-    
-    return user.role;
+    const user = this.USERS.find(u => u.id === userId);
+    return user ? user.role : '';
   }
 
   /**
    * Gets the entity ID of the current user (e.g., doctorId when role is 'doctor').
-   * @returns The entity ID (doctorId, keeperId, etc.) or null if not applicable.
+   * Para doctor: busca en Doctors por userId -> doctorId
+   * Para caregiver: busca en Caregivers por userId -> caregiverId
+   * Para admin: retorna null (no tiene entityId)
+   * @returns The entity ID (doctorId, caregiverId, etc.) or null if not applicable.
    */
   getCurrentUserEntityId(): number | null {
     const currentUserId = this.currentUserIdSignal();
@@ -331,14 +317,60 @@ export class OrganizationStore {
       return null;
     }
     
-    const user = currentUserId === this.USER_EXAMPLE_DATA_1.id ? this.USER_EXAMPLE_DATA_1 :
-                 currentUserId === this.USER_EXAMPLE_DATA_2.id ? this.USER_EXAMPLE_DATA_2 :
-                 currentUserId === this.USER_EXAMPLE_DATA_3.id ? this.USER_EXAMPLE_DATA_3 :
-                 currentUserId === this.USER_EXAMPLE_DATA_4.id ? this.USER_EXAMPLE_DATA_4 :
-                 null;
-    
-    // @ts-ignore - entityId puede existir en algunos usuarios
-    return user?.entityId || null;
+    const user = this.USERS.find(u => u.id === currentUserId);
+    if (!user) {
+      return null;
+    }
+
+    if (user.role === 'doctor') {
+      // Buscar doctor por userId en los doctores cargados
+      const doctor = this.doctors().find(d => d.userId === currentUserId.toString());
+      return doctor ? doctor.id : null;
+    } else if (user.role === 'caregiver') {
+      // Buscar caregiver por userId en los caregivers cargados
+      const caregiver = this.caregivers().find(c => c.userId === currentUserId.toString());
+      return caregiver ? caregiver.id : null;
+    }
+
+    // Admin no tiene entityId
+    return null;
+  }
+
+  /**
+   * Gets the current organization type.
+   * @returns The organization type ('clinica' | 'resident') or null if not loaded.
+   */
+  getCurrentOrganizationType(): 'clinica' | 'resident' | null {
+    const organization = this.currentOrganizationSignal();
+    return organization ? organization.type : null;
+  }
+
+  /**
+   * Loads an organization by its ID.
+   * @param organizationId - The organization ID to load.
+   */
+  loadOrganizationById(organizationId: number): void {
+    this.loadingSignal.set(true);
+    this.errorSignal.set(null);
+    console.log('[OrganizationStore] Loading organization for organizationId:', organizationId);
+    this.organizationApi.getOrganizationById(organizationId).pipe(take(1)).subscribe({
+      next: organization => {
+        console.log('[OrganizationStore] Loaded organization:', organization);
+        this.currentOrganizationSignal.set(organization);
+        this.loadingSignal.set(false);
+      },
+      error: err => {
+        console.error(`[Store] Error loading organization for organizationId ${organizationId}:`, err);
+        this.errorSignal.set(this.formatError(err, 'Failed to load organization'));
+        this.loadingSignal.set(false);
+        // Set a default organization based on organizationId if API fails
+        // This is a fallback for development/testing
+        const defaultOrg = organizationId === 1 
+          ? new Organization({ id: 1, name: 'Clínica Ortega', type: 'clinica' })
+          : new Organization({ id: 2, name: 'Casa de Reposo San Juan', type: 'resident' });
+        this.currentOrganizationSignal.set(defaultOrg);
+      }
+    });
   }
 
   /**
@@ -363,47 +395,26 @@ export class OrganizationStore {
     });
   }
 
-  /**
-   * Retrieves a patient by its ID as a signal.
-   * Optionally validates that the patient belongs to the specified organization.
-   * @param id - The ID of the patient.
-   * @param organizationId - Optional organization ID for validation.
-   * @returns A Signal containing the Patient object or undefined if not found or doesn't match organization.
-   */
-  getPatientById(id: number | null | undefined, organizationId?: number): Signal<Patient | undefined> {
-    return computed(() => {
-      if (!id) return undefined;
-      const patient = this.patients().find(p => p.id === id);
-      if (!patient) return undefined;
-      
-      // Validate organizationId if provided
-      if (organizationId !== undefined && patient.organizationId !== organizationId) {
-        return undefined;
-      }
-      
-      return patient;
-    });
-  }
 
   /**
-   * Retrieves a keeper by its ID as a signal.
-   * Optionally validates that the keeper belongs to the specified organization.
-   * @param id - The ID of the keeper.
+   * Retrieves a caregiver by its ID as a signal.
+   * Optionally validates that the caregiver belongs to the specified organization.
+   * @param id - The ID of the caregiver.
    * @param organizationId - Optional organization ID for validation.
-   * @returns A Signal containing the Keeper object or undefined if not found or doesn't match organization.
+   * @returns A Signal containing the Caregiver object or undefined if not found or doesn't match organization.
    */
-  getKeeperById(id: number | null | undefined, organizationId?: number): Signal<Keeper | undefined> {
+  getCaregiverById(id: number | null | undefined, organizationId?: number): Signal<Caregiver | undefined> {
     return computed(() => {
       if (!id) return undefined;
-      const keeper = this.keepers().find(k => k.id === id);
-      if (!keeper) return undefined;
+      const caregiver = this.caregivers().find(k => k.id === id);
+      if (!caregiver) return undefined;
       
       // Validate organizationId if provided
-      if (organizationId !== undefined && keeper.organizationId !== organizationId) {
+      if (organizationId !== undefined && caregiver.organizationId !== organizationId) {
         return undefined;
       }
       
-      return keeper;
+      return caregiver;
     });
   }
 
@@ -430,13 +441,13 @@ export class OrganizationStore {
   }
 
   /**
-   * Gets patients assigned to a specific doctor.
-   * Only returns patients from the same organization as the doctor.
+   * Gets senior citizens assigned to a specific doctor using doctor's assignedSeniorIds.
+   * Only returns senior citizens from the same organization as the doctor.
    * @param doctorId - The ID of the doctor.
    * @param organizationId - Optional organization ID for validation.
-   * @returns A Signal containing an array of patients assigned to the doctor.
+   * @returns A Signal containing an array of senior citizens assigned to the doctor.
    */
-  getPatientsByDoctorId(doctorId: number | null | undefined, organizationId?: number): Signal<Patient[]> {
+  getSeniorCitizensByDoctorId(doctorId: number | null | undefined, organizationId?: number): Signal<SeniorCitizen[]> {
     return computed(() => {
       if (!doctorId) return [];
       const doctor = this.doctors().find(d => d.id === doctorId);
@@ -447,32 +458,17 @@ export class OrganizationStore {
         return [];
       }
       
-      // Filter patients by doctorId and same organizationId
-      return this.patients().filter(patient => 
-        patient.doctorId === doctorId && patient.organizationId === doctor.organizationId
+      // Filter senior citizens by doctor's assignedSeniorIds and same organizationId
+      return this.seniorCitizens().filter(seniorCitizen => 
+        doctor.assignedSeniorIds.includes(seniorCitizen.id) && 
+        seniorCitizen.organizationId === doctor.organizationId
       );
     });
   }
 
-  /**
-   * Loads and selects a patient by ID.
-   * Similar to loadRelativeById in RelativesStore.
-   * @param patientId - The patient ID to load
-   */
-  loadPatientById(patientId: number): void {
-    const patient = this.patients().find(p => p.id === patientId);
-    if (patient) {
-      console.log(`✅ Patient loaded: ${patient.fullName} (id: ${patient.id})`);
-      this.selectedPatientSignal.set(patient);
-    } else {
-      console.error(`❌ Patient with id ${patientId} not found`);
-      this.selectedPatientSignal.set(null);
-    }
-  }
 
   /**
    * Loads and selects a senior citizen by ID.
-   * Similar to loadPatientById.
    * @param seniorCitizenId - The senior citizen ID to load
    */
   loadSeniorCitizenById(seniorCitizenId: number): void {
@@ -487,26 +483,27 @@ export class OrganizationStore {
   }
 
   /**
-   * Gets senior citizens assigned to a specific keeper.
-   * Only returns senior citizens from the same organization as the keeper.
-   * @param keeperId - The ID of the keeper.
+   * Gets senior citizens assigned to a specific caregiver using caregiver's assignedSeniorIds.
+   * Only returns senior citizens from the same organization as the caregiver.
+   * @param caregiverId - The ID of the caregiver.
    * @param organizationId - Optional organization ID for validation.
-   * @returns A Signal containing an array of senior citizens assigned to the keeper.
+   * @returns A Signal containing an array of senior citizens assigned to the caregiver.
    */
-  getSeniorCitizensByKeeperId(keeperId: number | null | undefined, organizationId?: number): Signal<SeniorCitizen[]> {
+  getSeniorCitizensByCaregiverId(caregiverId: number | null | undefined, organizationId?: number): Signal<SeniorCitizen[]> {
     return computed(() => {
-      if (!keeperId) return [];
-      const keeper = this.keepers().find(k => k.id === keeperId);
-      if (!keeper) return [];
+      if (!caregiverId) return [];
+      const caregiver = this.caregivers().find(k => k.id === caregiverId);
+      if (!caregiver) return [];
       
-      // Validate keeper belongs to organization if provided
-      if (organizationId && keeper.organizationId !== organizationId) {
+      // Validate caregiver belongs to organization if provided
+      if (organizationId && caregiver.organizationId !== organizationId) {
         return [];
       }
       
-      // Filter senior citizens by keeperId and same organizationId
+      // Filter senior citizens by caregiver's assignedSeniorIds and same organizationId
       return this.seniorCitizens().filter(sc => 
-        sc.keeperId === keeperId && sc.organizationId === keeper.organizationId
+        caregiver.assignedSeniorIds.includes(sc.id) && 
+        sc.organizationId === caregiver.organizationId
       );
     });
   }
@@ -561,12 +558,15 @@ export class OrganizationStore {
     this.organizationApi.deleteDoctor(id).pipe(retry(2)).subscribe({
       next: () => {
         this.doctorsSignal.update(doctors => doctors.filter(d => d.id !== id));
-        // Remove assignments for this doctor
-        this.assignmentsSignal.update(assignments => {
-          const newAssignments = { ...assignments };
-          delete newAssignments[id.toString()];
-          return newAssignments;
-        });
+        // Remove this doctor's ID from all senior citizens' assignedDoctorId
+        this.seniorCitizensSignal.update(seniorCitizens =>
+          seniorCitizens.map(sc => {
+            if (sc.assignedDoctorId === id) {
+              sc.assignedDoctorId = null;
+            }
+            return sc;
+          })
+        );
         this.loadingSignal.set(false);
       },
       error: err => {
@@ -576,259 +576,94 @@ export class OrganizationStore {
     });
   }
 
-  /**
-   * Adds a new patient.
-   * @param patient - The patient to add.
-   */
-  addPatient(patient: Patient): void {
-    this.loadingSignal.set(true);
-    this.errorSignal.set(null);
-    this.organizationApi.createPatient(patient).pipe(retry(2)).subscribe({
-      next: createdPatient => {
-        this.patientsSignal.update(patients => [...patients, createdPatient]);
-        this.loadingSignal.set(false);
-      },
-      error: err => {
-        this.errorSignal.set(this.formatError(err, 'Failed to create patient'));
-        this.loadingSignal.set(false);
-      }
-    });
-  }
 
   /**
-   * Updates an existing patient.
-   * @param updatedPatient - The patient to update.
+   * Assigns a senior citizen to a doctor using domain logic.
+   * Validates that both belong to the same organization.
+   * Validates that the senior citizen is not already assigned to any caregiver (exclusión mutua).
+   * If the senior citizen is already assigned to another doctor, it will be reassigned to the new doctor.
+   * @param doctorId - The ID of the doctor.
+   * @param seniorCitizenId - The ID of the senior citizen.
+   * @throws Error if doctor or senior citizen don't belong to the same organization.
+   * @throws Error if senior citizen is already assigned to a caregiver.
    */
-  updatePatient(updatedPatient: Patient): void {
-    this.loadingSignal.set(true);
-    this.errorSignal.set(null);
-    this.organizationApi.updatePatient(updatedPatient).pipe(retry(2)).subscribe({
-      next: patient => {
-        this.patientsSignal.update(patients =>
-          patients.map(p => p.id === patient.id ? patient : p)
+  assignSeniorCitizenToDoctor(doctorId: number, seniorCitizenId: number): void {
+    const doctor = this.doctors().find(d => d.id === doctorId);
+    const seniorCitizen = this.seniorCitizens().find(sc => sc.id === seniorCitizenId);
+    
+    if (!doctor) {
+      throw new Error(`Doctor with ID ${doctorId} not found`);
+    }
+    
+    if (!seniorCitizen) {
+      throw new Error(`Senior citizen with ID ${seniorCitizenId} not found`);
+    }
+    
+    // Validate same organization
+    if (doctor.organizationId !== seniorCitizen.organizationId) {
+      throw new Error(
+        `Cannot assign senior citizen to doctor: They belong to different organizations ` +
+        `(Doctor: org ${doctor.organizationId}, Senior Citizen: org ${seniorCitizen.organizationId})`
+      );
+    }
+
+    // Validate exclusión mutua: cannot be assigned to doctor if already assigned to caregiver
+    if (!seniorCitizen.canBeAssignedToDoctor()) {
+      throw new Error(
+        `Cannot assign senior citizen to doctor: Senior citizen is already assigned to a caregiver. ` +
+        `A senior citizen can only be assigned to doctors OR caregivers, not both.`
+      );
+    }
+
+    // If senior citizen is already assigned to another doctor, unassign from the previous doctor
+    const previousDoctorId = seniorCitizen.assignedDoctorId;
+    if (previousDoctorId && previousDoctorId !== doctorId) {
+      const previousDoctor = this.doctors().find(d => d.id === previousDoctorId);
+      if (previousDoctor) {
+        previousDoctor.unassignFromSenior(seniorCitizenId);
+        this.doctorsSignal.update(doctors =>
+          doctors.map(d => d.id === previousDoctorId ? previousDoctor : d)
         );
-        this.loadingSignal.set(false);
-      },
-      error: err => {
-        this.errorSignal.set(this.formatError(err, 'Failed to update patient'));
-        this.loadingSignal.set(false);
-      }
-    });
-  }
-
-  /**
-   * Deletes a patient by ID.
-   * @param id - The ID of the patient to delete.
-   */
-  deletePatient(id: number): void {
-    this.loadingSignal.set(true);
-    this.errorSignal.set(null);
-    this.organizationApi.deletePatient(id).pipe(retry(2)).subscribe({
-      next: () => {
-        this.patientsSignal.update(patients => patients.filter(p => p.id !== id));
-        // Remove patient from all doctor assignments
-        this.assignmentsSignal.update(assignments => {
-          const newAssignments = { ...assignments };
-          Object.keys(newAssignments).forEach(doctorId => {
-            newAssignments[doctorId] = newAssignments[doctorId].filter(patientId => 
-              patientId !== id.toString()
+        // Persist unassignment of previous doctor
+        this.organizationApi.updateDoctor(previousDoctor).pipe(retry(2)).subscribe({
+          next: (updatedPreviousDoctor) => {
+            this.doctorsSignal.update(doctors =>
+              doctors.map(d => d.id === previousDoctorId ? updatedPreviousDoctor : d)
             );
-          });
-          return newAssignments;
+          },
+          error: err => console.error('Failed to persist previous doctor unassignment:', err)
         });
-        this.loadingSignal.set(false);
+      }
+    }
+
+    // Use domain logic to assign
+    doctor.assignToSenior(seniorCitizenId);
+    seniorCitizen.assignedDoctorId = doctorId;
+
+    // Update local state optimistically
+    this.doctorsSignal.update(doctors =>
+      doctors.map(d => d.id === doctorId ? doctor : d)
+    );
+    this.seniorCitizensSignal.update(seniorCitizens =>
+      seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
+    );
+
+    // Persist to API (backend will handle the junction table)
+    this.organizationApi.updateDoctor(doctor).pipe(retry(2)).subscribe({
+      next: (updatedDoctor) => {
+        // Update with server response
+        this.doctorsSignal.update(doctors =>
+          doctors.map(d => d.id === doctorId ? updatedDoctor : d)
+        );
       },
       error: err => {
-        this.errorSignal.set(this.formatError(err, 'Failed to delete patient'));
-        this.loadingSignal.set(false);
-      }
-    });
-  }
-
-  /**
-   * Assigns a patient to a doctor.
-   * Validates that both belong to the same organization.
-   * @param doctorId - The ID of the doctor.
-   * @param patientId - The ID of the patient.
-   * @throws Error if doctor or patient don't belong to the same organization.
-   */
-  assignPatientToDoctor(doctorId: number, patientId: number): void {
-    // 1. VALIDAR QUE AMBAS ENTIDADES EXISTAN Y PERTENEZCAN A LA MISMA ORGANIZACIÓN
-    const doctor = this.doctors().find(d => d.id === doctorId);
-    const patient = this.patients().find(p => p.id === patientId);
-    
-    if (!doctor) {
-      throw new Error(`Doctor with ID ${doctorId} not found`);
-    }
-    
-    if (!patient) {
-      throw new Error(`Patient with ID ${patientId} not found`);
-    }
-    
-    // Validar que pertenezcan a la misma organización
-    if (doctor.organizationId !== patient.organizationId) {
-      throw new Error(
-        `Cannot assign patient to doctor: They belong to different organizations ` +
-        `(Doctor: org ${doctor.organizationId}, Patient: org ${patient.organizationId})`
-      );
-    }
-
-    // 2. ACTUALIZAR EL SIGNAL DE ASIGNACIONES (para compatibilidad con código existente)
-    this.assignmentsSignal.update(assignments => {
-      const newAssignments = { ...assignments };
-      if (!newAssignments[doctorId.toString()]) {
-        newAssignments[doctorId.toString()] = [];
-      }
-      if (!newAssignments[doctorId.toString()].includes(patientId.toString())) {
-        newAssignments[doctorId.toString()].push(patientId.toString());
-      }
-      return newAssignments;
-    });
-
-    // 3. ACTUALIZAR EL PATIENT EN EL STORE Y PERSISTIR EN LA API
-    const updatedPatient = new Patient({
-      id: patient.id,
-      firstName: patient.firstName,
-      lastName: patient.lastName,
-      age: patient.age,
-      gender: patient.gender,
-      weight: patient.weight,
-      dni: patient.dni,
-      height: patient.height,
-      imageUrl: patient.imageUrl,
-      doctorId: doctorId,
-      organizationId: patient.organizationId  // Mantener organizationId
-    });
-
-    // Actualizar en el store
-    this.patientsSignal.update(patients =>
-      patients.map(p => p.id === patientId ? updatedPatient : p)
-    );
-
-    // Persistir en la API
-    this.organizationApi.updatePatient(updatedPatient).pipe(retry(2)).subscribe({
-      error: err => {
-        console.error('Failed to persist patient assignment:', err);
-        // Revertir cambio local si falla la API
-        this.patientsSignal.update(patients =>
-          patients.map(p => p.id === patientId ? patient : p)
+        console.error('Failed to persist doctor assignment:', err);
+        // Revert optimistic update
+        doctor.unassignFromSenior(seniorCitizenId);
+        seniorCitizen.assignedDoctorId = previousDoctorId;
+        this.doctorsSignal.update(doctors =>
+          doctors.map(d => d.id === doctorId ? doctor : d)
         );
-      }
-    });
-  }
-
-  /**
-   * Unassigns a patient from a doctor.
-   * Validates that both belong to the same organization.
-   * @param doctorId - The ID of the doctor.
-   * @param patientId - The ID of the patient.
-   * @throws Error if doctor or patient don't belong to the same organization.
-   */
-  unassignPatientFromDoctor(doctorId: number, patientId: number): void {
-    const doctor = this.doctors().find(d => d.id === doctorId);
-    const patient = this.patients().find(p => p.id === patientId);
-    
-    if (!doctor) {
-      throw new Error(`Doctor with ID ${doctorId} not found`);
-    }
-    
-    if (!patient) {
-      throw new Error(`Patient with ID ${patientId} not found`);
-    }
-    
-    if (doctor.organizationId !== patient.organizationId) {
-      throw new Error(
-        `Cannot unassign patient from doctor: They belong to different organizations ` +
-        `(Doctor: org ${doctor.organizationId}, Patient: org ${patient.organizationId})`
-      );
-    }
-
-    this.assignmentsSignal.update(assignments => {
-      const newAssignments = { ...assignments };
-      if (newAssignments[doctorId.toString()]) {
-        newAssignments[doctorId.toString()] = newAssignments[doctorId.toString()].filter(
-          id => id !== patientId.toString()
-        );
-      }
-      return newAssignments;
-    });
-
-    const updatedPatient = new Patient({
-      id: patient.id,
-      firstName: patient.firstName,
-      lastName: patient.lastName,
-      age: patient.age,
-      gender: patient.gender,
-      weight: patient.weight,
-      dni: patient.dni,
-      height: patient.height,
-      imageUrl: patient.imageUrl,
-      doctorId: undefined,
-      organizationId: patient.organizationId
-    });
-
-    this.patientsSignal.update(patients =>
-      patients.map(p => p.id === patientId ? updatedPatient : p)
-    );
-
-    this.organizationApi.updatePatient(updatedPatient).pipe(retry(2)).subscribe({
-      error: err => {
-        console.error('Failed to persist patient unassignment:', err);
-        this.patientsSignal.update(patients =>
-          patients.map(p => p.id === patientId ? patient : p)
-        );
-      }
-    });
-  }
-
-  /**
-   * Assigns a senior citizen to a keeper.
-   * Validates that both belong to the same organization.
-   * Similar implementation to assignPatientToDoctor for consistency.
-   * @param keeperId - The ID of the keeper.
-   * @param seniorCitizenId - The ID of the senior citizen.
-   * @throws Error if keeper or senior citizen don't belong to the same organization.
-   */
-  assignSeniorCitizenToKeeper(keeperId: number, seniorCitizenId: number): void {
-    const keeper = this.keepers().find(k => k.id === keeperId);
-    const seniorCitizen = this.seniorCitizens().find(sc => sc.id === seniorCitizenId);
-    
-    if (!keeper) {
-      throw new Error(`Keeper with ID ${keeperId} not found`);
-    }
-    
-    if (!seniorCitizen) {
-      throw new Error(`Senior citizen with ID ${seniorCitizenId} not found`);
-    }
-    
-    if (keeper.organizationId !== seniorCitizen.organizationId) {
-      throw new Error(
-        `Cannot assign senior citizen to keeper: They belong to different organizations ` +
-        `(Keeper: org ${keeper.organizationId}, Senior Citizen: org ${seniorCitizen.organizationId})`
-      );
-    }
-
-    const updatedSeniorCitizen = new SeniorCitizen({
-      id: seniorCitizen.id,
-      fullName: seniorCitizen.fullName,
-      age: seniorCitizen.age,
-      gender: seniorCitizen.gender,
-      weight: seniorCitizen.weight,
-      height: seniorCitizen.height,
-      dni: seniorCitizen.dni,
-      imageUrl: seniorCitizen.imageUrl,
-      deviceIot: seniorCitizen.deviceIot,
-      keeperId: keeperId,
-      organizationId: seniorCitizen.organizationId
-    });
-
-    this.seniorCitizensSignal.update(seniorCitizens =>
-      seniorCitizens.map(sc => sc.id === seniorCitizenId ? updatedSeniorCitizen : sc)
-    );
-
-    this.organizationApi.updateSeniorCitizen(updatedSeniorCitizen).pipe(retry(2)).subscribe({
-      error: err => {
-        console.error('Failed to persist senior citizen assignment:', err);
         this.seniorCitizensSignal.update(seniorCitizens =>
           seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
         );
@@ -837,53 +672,215 @@ export class OrganizationStore {
   }
 
   /**
-   * Unassigns a senior citizen from a keeper.
+   * Unassigns a senior citizen from a doctor using domain logic.
    * Validates that both belong to the same organization.
-   * Similar implementation to unassignPatientFromDoctor for consistency.
-   * @param keeperId - The ID of the keeper.
+   * @param doctorId - The ID of the doctor.
    * @param seniorCitizenId - The ID of the senior citizen.
-   * @throws Error if keeper or senior citizen don't belong to the same organization.
+   * @throws Error if doctor or senior citizen don't belong to the same organization.
    */
-  unassignSeniorCitizenFromKeeper(keeperId: number, seniorCitizenId: number): void {
-    const keeper = this.keepers().find(k => k.id === keeperId);
+  unassignSeniorCitizenFromDoctor(doctorId: number, seniorCitizenId: number): void {
+    const doctor = this.doctors().find(d => d.id === doctorId);
     const seniorCitizen = this.seniorCitizens().find(sc => sc.id === seniorCitizenId);
     
-    if (!keeper) {
-      throw new Error(`Keeper with ID ${keeperId} not found`);
+    if (!doctor) {
+      throw new Error(`Doctor with ID ${doctorId} not found`);
     }
     
     if (!seniorCitizen) {
       throw new Error(`Senior citizen with ID ${seniorCitizenId} not found`);
     }
     
-    if (keeper.organizationId !== seniorCitizen.organizationId) {
+    if (doctor.organizationId !== seniorCitizen.organizationId) {
       throw new Error(
-        `Cannot unassign senior citizen from keeper: They belong to different organizations ` +
-        `(Keeper: org ${keeper.organizationId}, Senior Citizen: org ${seniorCitizen.organizationId})`
+        `Cannot unassign senior citizen from doctor: They belong to different organizations ` +
+        `(Doctor: org ${doctor.organizationId}, Senior Citizen: org ${seniorCitizen.organizationId})`
       );
     }
 
-    const updatedSeniorCitizen = new SeniorCitizen({
-      id: seniorCitizen.id,
-      fullName: seniorCitizen.fullName,
-      age: seniorCitizen.age,
-      gender: seniorCitizen.gender,
-      weight: seniorCitizen.weight,
-      height: seniorCitizen.height,
-      dni: seniorCitizen.dni,
-      imageUrl: seniorCitizen.imageUrl,
-      deviceIot: seniorCitizen.deviceIot,
-      keeperId: undefined,
-      organizationId: seniorCitizen.organizationId
-    });
+    // Use domain logic to unassign
+    doctor.unassignFromSenior(seniorCitizenId);
+    seniorCitizen.assignedDoctorId = null;
 
+    // Update local state optimistically
+    this.doctorsSignal.update(doctors =>
+      doctors.map(d => d.id === doctorId ? doctor : d)
+    );
     this.seniorCitizensSignal.update(seniorCitizens =>
-      seniorCitizens.map(sc => sc.id === seniorCitizenId ? updatedSeniorCitizen : sc)
+      seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
     );
 
-    this.organizationApi.updateSeniorCitizen(updatedSeniorCitizen).pipe(retry(2)).subscribe({
+    // Persist to API (backend will handle the junction table)
+    this.organizationApi.updateDoctor(doctor).pipe(retry(2)).subscribe({
+      next: (updatedDoctor) => {
+        // Update with server response
+        this.doctorsSignal.update(doctors =>
+          doctors.map(d => d.id === doctorId ? updatedDoctor : d)
+        );
+      },
       error: err => {
-        console.error('Failed to persist senior citizen unassignment:', err);
+        console.error('Failed to persist doctor unassignment:', err);
+        // Revert optimistic update
+        doctor.assignToSenior(seniorCitizenId);
+        seniorCitizen.assignedDoctorId = doctorId;
+        this.doctorsSignal.update(doctors =>
+          doctors.map(d => d.id === doctorId ? doctor : d)
+        );
+        this.seniorCitizensSignal.update(seniorCitizens =>
+          seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
+        );
+      }
+    });
+  }
+
+  /**
+   * Assigns a senior citizen to a caregiver using domain logic.
+   * Validates that both belong to the same organization.
+   * Validates that the senior citizen is not already assigned to any doctor (exclusión mutua).
+   * If the senior citizen is already assigned to another caregiver, it will be reassigned to the new caregiver.
+   * @param caregiverId - The ID of the caregiver.
+   * @param seniorCitizenId - The ID of the senior citizen.
+   * @throws Error if caregiver or senior citizen don't belong to the same organization.
+   * @throws Error if senior citizen is already assigned to a doctor.
+   */
+  assignSeniorCitizenToCaregiver(caregiverId: number, seniorCitizenId: number): void {
+    const caregiver = this.caregivers().find(k => k.id === caregiverId);
+    const seniorCitizen = this.seniorCitizens().find(sc => sc.id === seniorCitizenId);
+    
+    if (!caregiver) {
+      throw new Error(`Caregiver with ID ${caregiverId} not found`);
+    }
+    
+    if (!seniorCitizen) {
+      throw new Error(`Senior citizen with ID ${seniorCitizenId} not found`);
+    }
+    
+    // Validate same organization
+    if (caregiver.organizationId !== seniorCitizen.organizationId) {
+      throw new Error(
+        `Cannot assign senior citizen to caregiver: They belong to different organizations ` +
+        `(Caregiver: org ${caregiver.organizationId}, Senior Citizen: org ${seniorCitizen.organizationId})`
+      );
+    }
+
+    // Validate exclusión mutua: cannot be assigned to caregiver if already assigned to doctor
+    if (!seniorCitizen.canBeAssignedToCaregiver()) {
+      throw new Error(
+        `Cannot assign senior citizen to caregiver: Senior citizen is already assigned to a doctor. ` +
+        `A senior citizen can only be assigned to doctors OR caregivers, not both.`
+      );
+    }
+
+    // If senior citizen is already assigned to another caregiver, unassign from the previous caregiver
+    const previousCaregiverId = seniorCitizen.assignedCaregiverId;
+    if (previousCaregiverId && previousCaregiverId !== caregiverId) {
+      const previousCaregiver = this.caregivers().find(c => c.id === previousCaregiverId);
+      if (previousCaregiver) {
+        previousCaregiver.unassignFromSenior(seniorCitizenId);
+        this.caregiversSignal.update(caregivers =>
+          caregivers.map(c => c.id === previousCaregiverId ? previousCaregiver : c)
+        );
+        // Persist unassignment of previous caregiver
+        this.organizationApi.updateCaregiver(previousCaregiver).pipe(retry(2)).subscribe({
+          next: (updatedPreviousCaregiver) => {
+            this.caregiversSignal.update(caregivers =>
+              caregivers.map(c => c.id === previousCaregiverId ? updatedPreviousCaregiver : c)
+            );
+          },
+          error: err => console.error('Failed to persist previous caregiver unassignment:', err)
+        });
+      }
+    }
+
+    // Use domain logic to assign
+    caregiver.assignToSenior(seniorCitizenId);
+    seniorCitizen.assignedCaregiverId = caregiverId;
+
+    // Update local state optimistically
+    this.caregiversSignal.update(caregivers =>
+      caregivers.map(c => c.id === caregiverId ? caregiver : c)
+    );
+    this.seniorCitizensSignal.update(seniorCitizens =>
+      seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
+    );
+
+    // Persist to API (backend will handle the junction table)
+    this.organizationApi.updateCaregiver(caregiver).pipe(retry(2)).subscribe({
+      next: (updatedCaregiver) => {
+        // Update with server response
+        this.caregiversSignal.update(caregivers =>
+          caregivers.map(c => c.id === caregiverId ? updatedCaregiver : c)
+        );
+      },
+      error: err => {
+        console.error('Failed to persist caregiver assignment:', err);
+        // Revert optimistic update
+        caregiver.unassignFromSenior(seniorCitizenId);
+        seniorCitizen.assignedCaregiverId = previousCaregiverId;
+        this.caregiversSignal.update(caregivers =>
+          caregivers.map(c => c.id === caregiverId ? caregiver : c)
+        );
+        this.seniorCitizensSignal.update(seniorCitizens =>
+          seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
+        );
+      }
+    });
+  }
+
+  /**
+   * Unassigns a senior citizen from a caregiver using domain logic.
+   * Validates that both belong to the same organization.
+   * Similar implementation to unassignSeniorCitizenFromDoctor for consistency.
+   * @param caregiverId - The ID of the caregiver.
+   * @param seniorCitizenId - The ID of the senior citizen.
+   * @throws Error if caregiver or senior citizen don't belong to the same organization.
+   */
+  unassignSeniorCitizenFromCaregiver(caregiverId: number, seniorCitizenId: number): void {
+    const caregiver = this.caregivers().find(k => k.id === caregiverId);
+    const seniorCitizen = this.seniorCitizens().find(sc => sc.id === seniorCitizenId);
+    
+    if (!caregiver) {
+      throw new Error(`Caregiver with ID ${caregiverId} not found`);
+    }
+    
+    if (!seniorCitizen) {
+      throw new Error(`Senior citizen with ID ${seniorCitizenId} not found`);
+    }
+    
+    if (caregiver.organizationId !== seniorCitizen.organizationId) {
+      throw new Error(
+        `Cannot unassign senior citizen from caregiver: They belong to different organizations ` +
+        `(Caregiver: org ${caregiver.organizationId}, Senior Citizen: org ${seniorCitizen.organizationId})`
+      );
+    }
+
+    // Use domain logic to unassign
+    caregiver.unassignFromSenior(seniorCitizenId);
+    seniorCitizen.assignedCaregiverId = null;
+
+    // Update local state optimistically
+    this.caregiversSignal.update(caregivers =>
+      caregivers.map(c => c.id === caregiverId ? caregiver : c)
+    );
+    this.seniorCitizensSignal.update(seniorCitizens =>
+      seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
+    );
+
+    // Persist to API (backend will handle the junction table)
+    this.organizationApi.updateCaregiver(caregiver).pipe(retry(2)).subscribe({
+      next: (updatedCaregiver) => {
+        // Update with server response
+        this.caregiversSignal.update(caregivers =>
+          caregivers.map(c => c.id === caregiverId ? updatedCaregiver : c)
+        );
+      },
+      error: err => {
+        console.error('Failed to persist caregiver unassignment:', err);
+        // Revert optimistic update
+        caregiver.assignToSenior(seniorCitizenId);
+        seniorCitizen.assignedCaregiverId = caregiverId;
+        this.caregiversSignal.update(caregivers =>
+          caregivers.map(c => c.id === caregiverId ? caregiver : c)
+        );
         this.seniorCitizensSignal.update(seniorCitizens =>
           seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
         );
@@ -893,59 +890,68 @@ export class OrganizationStore {
 
 
   /**
-   * Adds a new keeper.
-   * @param keeper - The keeper to add.
+   * Adds a new caregiver.
+   * @param caregiver - The caregiver to add.
    */
-  addKeeper(keeper: Keeper): void {
+  addCaregiver(caregiver: Caregiver): void {
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
-    this.organizationApi.createKeeper(keeper).pipe(retry(2)).subscribe({
-      next: createdKeeper => {
-        this.keepersSignal.update(keepers => [...keepers, createdKeeper]);
+    this.organizationApi.createCaregiver(caregiver).pipe(retry(2)).subscribe({
+      next: createdCaregiver => {
+        this.caregiversSignal.update(caregivers => [...caregivers, createdCaregiver]);
         this.loadingSignal.set(false);
       },
       error: err => {
-        this.errorSignal.set(this.formatError(err, 'Failed to create keeper'));
+        this.errorSignal.set(this.formatError(err, 'Failed to create caregiver'));
         this.loadingSignal.set(false);
       }
     });
   }
 
   /**
-   * Updates an existing keeper.
-   * @param updatedKeeper - The keeper to update.
+   * Updates an existing caregiver.
+   * @param updatedCaregiver - The caregiver to update.
    */
-  updateKeeper(updatedKeeper: Keeper): void {
+  updateCaregiver(updatedCaregiver: Caregiver): void {
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
-    this.organizationApi.updateKeeper(updatedKeeper).pipe(retry(2)).subscribe({
-      next: keeper => {
-        this.keepersSignal.update(keepers =>
-          keepers.map(k => k.id === keeper.id ? keeper : k)
+    this.organizationApi.updateCaregiver(updatedCaregiver).pipe(retry(2)).subscribe({
+      next: caregiver => {
+        this.caregiversSignal.update(caregivers =>
+          caregivers.map(k => k.id === caregiver.id ? caregiver : k)
         );
         this.loadingSignal.set(false);
       },
       error: err => {
-        this.errorSignal.set(this.formatError(err, 'Failed to update keeper'));
+        this.errorSignal.set(this.formatError(err, 'Failed to update caregiver'));
         this.loadingSignal.set(false);
       }
     });
   }
 
   /**
-   * Deletes a keeper by ID.
-   * @param id - The ID of the keeper to delete.
+   * Deletes a caregiver by ID.
+   * @param id - The ID of the caregiver to delete.
    */
-  deleteKeeper(id: number): void {
+  deleteCaregiver(id: number): void {
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
-    this.organizationApi.deleteKeeper(id).pipe(retry(2)).subscribe({
+    this.organizationApi.deleteCaregiver(id).pipe(retry(2)).subscribe({
       next: () => {
-        this.keepersSignal.update(keepers => keepers.filter(k => k.id !== id));
+        this.caregiversSignal.update(caregivers => caregivers.filter(k => k.id !== id));
+        // Remove this caregiver's ID from all senior citizens' assignedCaregiverId
+        this.seniorCitizensSignal.update(seniorCitizens =>
+          seniorCitizens.map(sc => {
+            if (sc.assignedCaregiverId === id) {
+              sc.assignedCaregiverId = null;
+            }
+            return sc;
+          })
+        );
         this.loadingSignal.set(false);
       },
       error: err => {
-        this.errorSignal.set(this.formatError(err, 'Failed to delete keeper'));
+        this.errorSignal.set(this.formatError(err, 'Failed to delete caregiver'));
         this.loadingSignal.set(false);
       }
     });
@@ -954,14 +960,39 @@ export class OrganizationStore {
 
   /**
    * Adds a new senior citizen.
+   * Validates that the senior citizen belongs to the current organization.
    * @param seniorCitizen - The senior citizen to add.
+   * @throws Error if senior citizen doesn't belong to the current organization.
    */
   addSeniorCitizen(seniorCitizen: SeniorCitizen): void {
+    const currentOrganizationId = this.getCurrentOrganizationId();
+    
+    // Validate organizationId matches current organization
+    if (currentOrganizationId === 0) {
+      throw new Error('Cannot create senior citizen: No organization context available');
+    }
+    
+    if (seniorCitizen.organizationId !== currentOrganizationId) {
+      throw new Error(
+        `Cannot create senior citizen: organizationId mismatch. ` +
+        `Expected ${currentOrganizationId}, got ${seniorCitizen.organizationId}. ` +
+        `A senior citizen can only be created for the current organization.`
+      );
+    }
+    
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
     this.organizationApi.createSeniorCitizen(seniorCitizen).pipe(retry(2)).subscribe({
       next: createdSeniorCitizen => {
-        this.seniorCitizensSignal.update(seniorCitizens => [...seniorCitizens, createdSeniorCitizen]);
+        // Validate that the created senior citizen belongs to the current organization
+        if (createdSeniorCitizen.organizationId === currentOrganizationId) {
+          this.seniorCitizensSignal.update(seniorCitizens => [...seniorCitizens, createdSeniorCitizen]);
+        } else {
+          console.warn(
+            `⚠️ Created senior citizen has different organizationId (${createdSeniorCitizen.organizationId}) ` +
+            `than current (${currentOrganizationId}). Not adding to list.`
+          );
+        }
         this.loadingSignal.set(false);
       },
       error: err => {
@@ -973,16 +1004,55 @@ export class OrganizationStore {
 
   /**
    * Updates an existing senior citizen.
+   * Validates that the senior citizen belongs to the current organization and prevents organizationId changes.
    * @param updatedSeniorCitizen - The senior citizen to update.
+   * @throws Error if senior citizen doesn't belong to the current organization or organizationId is changed.
    */
   updateSeniorCitizen(updatedSeniorCitizen: SeniorCitizen): void {
+    const currentOrganizationId = this.getCurrentOrganizationId();
+    
+    // Validate organizationId matches current organization
+    if (currentOrganizationId === 0) {
+      throw new Error('Cannot update senior citizen: No organization context available');
+    }
+    
+    if (updatedSeniorCitizen.organizationId !== currentOrganizationId) {
+      throw new Error(
+        `Cannot update senior citizen: organizationId mismatch. ` +
+        `Expected ${currentOrganizationId}, got ${updatedSeniorCitizen.organizationId}. ` +
+        `A senior citizen can only be updated within its organization.`
+      );
+    }
+    
+    // Find existing senior citizen to ensure organizationId doesn't change
+    const existingSeniorCitizen = this.seniorCitizens().find(sc => sc.id === updatedSeniorCitizen.id);
+    if (existingSeniorCitizen && existingSeniorCitizen.organizationId !== updatedSeniorCitizen.organizationId) {
+      throw new Error(
+        `Cannot update senior citizen: Cannot change organizationId. ` +
+        `Original: ${existingSeniorCitizen.organizationId}, Attempted: ${updatedSeniorCitizen.organizationId}. ` +
+        `A senior citizen cannot be moved to a different organization.`
+      );
+    }
+    
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
     this.organizationApi.updateSeniorCitizen(updatedSeniorCitizen).pipe(retry(2)).subscribe({
       next: seniorCitizen => {
-        this.seniorCitizensSignal.update(seniorCitizens =>
-          seniorCitizens.map(sc => sc.id === seniorCitizen.id ? seniorCitizen : sc)
-        );
+        // Validate that the updated senior citizen still belongs to the current organization
+        if (seniorCitizen.organizationId === currentOrganizationId) {
+          this.seniorCitizensSignal.update(seniorCitizens =>
+            seniorCitizens.map(sc => sc.id === seniorCitizen.id ? seniorCitizen : sc)
+          );
+        } else {
+          // If organizationId changed (shouldn't happen), remove from list
+          console.warn(
+            `⚠️ Updated senior citizen has different organizationId (${seniorCitizen.organizationId}) ` +
+            `than current (${currentOrganizationId}). Removing from list.`
+          );
+          this.seniorCitizensSignal.update(seniorCitizens =>
+            seniorCitizens.filter(sc => sc.id !== seniorCitizen.id)
+          );
+        }
         this.loadingSignal.set(false);
       },
       error: err => {
@@ -1016,19 +1086,33 @@ export class OrganizationStore {
    * @param organizationId - The organization ID to filter doctors.
    */
   loadDoctorsByOrganization(organizationId: number): void {
-    console.log(` [Store] loadDoctorsByOrganization called for organizationId: ${organizationId}`);
+    console.log(`📋 [Store] Loading doctors for organizationId: ${organizationId}`);
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
     this.organizationApi.getDoctorsByOrganization(organizationId).pipe(take(1)).subscribe({
       next: doctors => {
-        console.log(` [Store] Doctors loaded successfully for organizationId ${organizationId}:`, doctors);
-        console.log(` [Store] Doctors count: ${doctors.length}`);
-        this.doctorsSignal.set(doctors);
-        console.log(` [Store] doctorsSignal updated. Current value:`, this.doctorsSignal());
+        // Validate that all loaded doctors belong to the requested organization
+        const invalidDoctors = doctors.filter(d => d.organizationId !== organizationId);
+        if (invalidDoctors.length > 0) {
+          console.warn(
+            `⚠️ [Store] Found ${invalidDoctors.length} doctor(s) with different organizationId. ` +
+            `Expected: ${organizationId}, Filtering them out.`
+          );
+        }
+        
+        // Filter to ensure only doctors from the requested organization are stored
+        const validDoctors = doctors.filter(d => d.organizationId === organizationId);
+        console.log(`✅ [Store] Loaded ${validDoctors.length} doctor(s) for organizationId: ${organizationId}`);
+        
+        this.doctorsSignal.set(validDoctors);
+        
+        // Recalculate assignments for senior citizens after loading doctors
+        this.recalculateSeniorCitizenAssignments();
+        
         this.loadingSignal.set(false);
       },
       error: err => {
-        console.error(` [Store] Error loading doctors for organizationId ${organizationId}:`, err);
+        console.error(`❌ [Store] Error loading doctors for organizationId ${organizationId}:`, err);
         this.errorSignal.set(this.formatError(err, 'Failed to load doctors'));
         this.loadingSignal.set(false);
       }
@@ -1036,82 +1120,38 @@ export class OrganizationStore {
   }
 
   /**
-   * Loads patients by organization ID.
-   * @param organizationId - The organization ID to filter patients.
-   */
-  loadPatientsByOrganization(organizationId: number): void {
-    console.log(`📥 [Store] loadPatientsByOrganization called for organizationId: ${organizationId}`);
-    this.loadingSignal.set(true);
-    this.errorSignal.set(null);
-    this.organizationApi.getPatientsByOrganization(organizationId).pipe(take(1)).subscribe({
-      next: patients => {
-        console.log(` [Store] Patients loaded successfully for organizationId ${organizationId}:`, patients);
-        console.log(` [Store] Patients count: ${patients.length}`);
-        this.patientsSignal.set(patients);
-        console.log(` [Store] patientsSignal updated. Current value:`, this.patientsSignal());
-        this.loadingSignal.set(false);
-      },
-      error: err => {
-        console.error(` [Store] Error loading patients for organizationId ${organizationId}:`, err);
-        this.errorSignal.set(this.formatError(err, 'Failed to load patients'));
-        this.loadingSignal.set(false);
-      }
-    });
-  }
-
-  /**
-   * Loads patients by doctor ID.
-   * @param doctorId - The doctor ID to filter patients.
-   */
-  loadPatientsByDoctor(doctorId: number): void {
-    this.loadingSignal.set(true);
-    this.errorSignal.set(null);
-    this.organizationApi.getPatientsByDoctor(doctorId).pipe(take(1)).subscribe({
-      next: patients => {
-        this.patientsSignal.set(patients);
-        this.loadingSignal.set(false);
-      },
-      error: err => {
-        this.errorSignal.set(this.formatError(err, 'Failed to load patients by doctor'));
-        this.loadingSignal.set(false);
-      }
-    });
-  }
-
-  /**
-   * Loads keepers by organization ID.
-   * @param organizationId - The organization ID to filter keepers.
-   */
-  loadKeepersByOrganization(organizationId: number): void {
-    this.loadingSignal.set(true);
-    this.errorSignal.set(null);
-    console.log('[OrganizationStore] Loading keepers for organizationId:', organizationId);
-    this.organizationApi.getKeepersByOrganization(organizationId).pipe(take(1)).subscribe({
-      next: keepers => {
-        console.log('[OrganizationStore] Loaded keepers:', keepers);
-        this.keepersSignal.set(keepers);
-        this.loadingSignal.set(false);
-      },
-      error: err => {
-        this.errorSignal.set(this.formatError(err, 'Failed to load keepers'));
-        this.loadingSignal.set(false);
-      }
-    });
-  }
-
-  /**
    * Loads senior citizens by organization ID.
+   * After loading, calculates assignedDoctorId and assignedCaregiverId from doctors and caregivers.
    * @param organizationId - The organization ID to filter senior citizens.
    */
   loadSeniorCitizensByOrganization(organizationId: number): void {
+    console.log(`📋 [Store] Loading senior citizens for organizationId: ${organizationId}`);
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
     this.organizationApi.getSeniorCitizensByOrganization(organizationId).pipe(take(1)).subscribe({
       next: seniorCitizens => {
-        this.seniorCitizensSignal.set(seniorCitizens);
+        // Validate that all loaded senior citizens belong to the requested organization
+        const invalidSeniorCitizens = seniorCitizens.filter(sc => sc.organizationId !== organizationId);
+        if (invalidSeniorCitizens.length > 0) {
+          console.warn(
+            `⚠️ [Store] Found ${invalidSeniorCitizens.length} senior citizen(s) with different organizationId. ` +
+            `Expected: ${organizationId}, Filtering them out.`
+          );
+        }
+        
+        // Filter to ensure only senior citizens from the requested organization are stored
+        let validSeniorCitizens = seniorCitizens.filter(sc => sc.organizationId === organizationId);
+        
+        // Calculate assignedDoctorId and assignedCaregiverId from doctors and caregivers
+        validSeniorCitizens = this.calculateAssignments(validSeniorCitizens);
+        
+        console.log(`✅ [Store] Loaded ${validSeniorCitizens.length} senior citizen(s) for organizationId: ${organizationId}`);
+        
+        this.seniorCitizensSignal.set(validSeniorCitizens);
         this.loadingSignal.set(false);
       },
       error: err => {
+        console.error(`❌ [Store] Error loading senior citizens for organizationId ${organizationId}:`, err);
         this.errorSignal.set(this.formatError(err, 'Failed to load senior citizens'));
         this.loadingSignal.set(false);
       }
@@ -1119,19 +1159,103 @@ export class OrganizationStore {
   }
 
   /**
-   * Loads senior citizens by keeper ID.
-   * @param keeperId - The keeper ID to filter senior citizens.
+   * Calculates assignedDoctorId and assignedCaregiverId for senior citizens based on doctors and caregivers.
+   * Since assignments are stored in doctors' and caregivers' assignedSeniorIds arrays,
+   * we need to reverse-lookup to populate the senior citizens' assignedDoctorId and assignedCaregiverId.
+   * @param seniorCitizens - Array of senior citizens to update
+   * @returns Array of senior citizens with calculated assignments
    */
-  loadSeniorCitizensByKeeper(keeperId: number): void {
+  private calculateAssignments(seniorCitizens: SeniorCitizen[]): SeniorCitizen[] {
+    const doctors = this.doctors();
+    const caregivers = this.caregivers();
+    
+    return seniorCitizens.map(sc => {
+      // Find which doctor has this senior citizen in their assignedSeniorIds
+      const assignedDoctor = doctors.find(d => d.assignedSeniorIds.includes(sc.id));
+      const assignedDoctorId = assignedDoctor ? assignedDoctor.id : null;
+      
+      // Find which caregiver has this senior citizen in their assignedSeniorIds
+      const assignedCaregiver = caregivers.find(c => c.assignedSeniorIds.includes(sc.id));
+      const assignedCaregiverId = assignedCaregiver ? assignedCaregiver.id : null;
+      
+      // Update the senior citizen if assignments have changed
+      if (sc.assignedDoctorId !== assignedDoctorId || sc.assignedCaregiverId !== assignedCaregiverId) {
+        sc.assignedDoctorId = assignedDoctorId;
+        sc.assignedCaregiverId = assignedCaregiverId;
+      }
+      
+      return sc;
+    });
+  }
+
+  /**
+   * Recalculates assignments for all currently loaded senior citizens.
+   * This should be called after loading doctors or caregivers to update senior citizen assignments.
+   */
+  private recalculateSeniorCitizenAssignments(): void {
+    const currentSeniorCitizens = this.seniorCitizens();
+    if (currentSeniorCitizens.length === 0) {
+      return; // No senior citizens loaded yet
+    }
+    
+    const updatedSeniorCitizens = this.calculateAssignments(currentSeniorCitizens);
+    this.seniorCitizensSignal.set(updatedSeniorCitizens);
+  }
+
+  /**
+   * Loads caregivers by organization ID.
+   * This ensures multi-tenant isolation - only caregivers from the specified organization are loaded.
+   * @param organizationId - The organization ID to filter caregivers.
+   */
+  loadCaregiversByOrganization(organizationId: number): void {
+    console.log(`📋 [Store] Loading caregivers for organizationId: ${organizationId}`);
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
-    this.organizationApi.getSeniorCitizensByKeeper(keeperId).pipe(take(1)).subscribe({
+    this.organizationApi.getCaregiversByOrganization(organizationId).pipe(take(1)).subscribe({
+      next: caregivers => {
+        // Validate that all loaded caregivers belong to the requested organization
+        const invalidCaregivers = caregivers.filter(c => c.organizationId !== organizationId);
+        if (invalidCaregivers.length > 0) {
+          console.warn(
+            `⚠️ [Store] Found ${invalidCaregivers.length} caregiver(s) with different organizationId. ` +
+            `Expected: ${organizationId}, Filtering them out.`
+          );
+        }
+        
+        // Filter to ensure only caregivers from the requested organization are stored
+        const validCaregivers = caregivers.filter(c => c.organizationId === organizationId);
+        console.log(`✅ [Store] Loaded ${validCaregivers.length} caregiver(s) for organizationId: ${organizationId}`);
+        
+        this.caregiversSignal.set(validCaregivers);
+        
+        // Recalculate assignments for senior citizens after loading caregivers
+        this.recalculateSeniorCitizenAssignments();
+        
+        this.loadingSignal.set(false);
+      },
+      error: err => {
+        console.error(`❌ [Store] Error loading caregivers for organizationId ${organizationId}:`, err);
+        this.errorSignal.set(this.formatError(err, 'Failed to load caregivers'));
+        this.loadingSignal.set(false);
+      }
+    });
+  }
+
+
+  /**
+   * Loads senior citizens by caregiver ID.
+   * @param caregiverId - The caregiver ID to filter senior citizens.
+   */
+  loadSeniorCitizensByCaregiver(caregiverId: number): void {
+    this.loadingSignal.set(true);
+    this.errorSignal.set(null);
+    this.organizationApi.getSeniorCitizensByCaregiver(caregiverId).pipe(take(1)).subscribe({
       next: seniorCitizens => {
         this.seniorCitizensSignal.set(seniorCitizens);
         this.loadingSignal.set(false);
       },
       error: err => {
-        this.errorSignal.set(this.formatError(err, 'Failed to load senior citizens by keeper'));
+        this.errorSignal.set(this.formatError(err, 'Failed to load senior citizens by caregiver'));
         this.loadingSignal.set(false);
       }
     });
@@ -1155,37 +1279,20 @@ export class OrganizationStore {
     });
   }
 
-  /**
-   * Loads all patients from the API.
-   */
-  loadPatients(): void {
-    this.loadingSignal.set(true);
-    this.errorSignal.set(null);
-    this.organizationApi.getPatients().pipe(take(1)).subscribe({
-      next: patients => {
-        this.patientsSignal.set(patients);
-        this.loadingSignal.set(false);
-      },
-      error: err => {
-        this.errorSignal.set(this.formatError(err, 'Failed to load patients'));
-        this.loadingSignal.set(false);
-      }
-    });
-  }
 
   /**
-   * Loads all keepers from the API.
+   * Loads all caregivers from the API.
    */
-  loadKeepers(): void {
+  loadCaregivers(): void {
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
-    this.organizationApi.getKeepers().pipe(take(1)).subscribe({
-      next: keepers => {
-        this.keepersSignal.set(keepers);
+    this.organizationApi.getCaregivers().pipe(take(1)).subscribe({
+      next: caregivers => {
+        this.caregiversSignal.set(caregivers);
         this.loadingSignal.set(false);
       },
       error: err => {
-        this.errorSignal.set(this.formatError(err, 'Failed to load keepers'));
+        this.errorSignal.set(this.formatError(err, 'Failed to load caregivers'));
         this.loadingSignal.set(false);
       }
     });

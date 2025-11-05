@@ -1,6 +1,6 @@
 import { BaseEntity } from '../../../shared/infrastructure/base-entity';
 
-export class Doctor implements BaseEntity {
+export class Caregiver implements BaseEntity{
     private _id: number;
     private _organizationId: number;
     private _userId: string;
@@ -13,10 +13,10 @@ export class Doctor implements BaseEntity {
     private _imageUrl: string;
     private _assignedSeniorIds: number[];
 
-    constructor(doctor: {
+    constructor(caregiver: {
         id?: number;
         organizationId: number;
-        userId?: string; // Optional: backend will assign when creating new doctor
+        userId?: string; // Optional: backend will assign when creating new caregiver
         firstName?: string;
         lastName?: string;
         age?: number;
@@ -26,17 +26,17 @@ export class Doctor implements BaseEntity {
         imageUrl?: string;
         assignedSeniorIds?: number[];
     }) {
-        this._id = doctor.id ?? 0;
-        this._organizationId = doctor.organizationId;
-        this._userId = doctor.userId ?? ''; // Empty string as default, backend will assign
-        this._firstName = doctor.firstName ?? '';
-        this._lastName = doctor.lastName ?? '';
-        this._age = doctor.age ?? 0;
-        this._email = doctor.email ?? '';
-        this._specialty = doctor.specialty ?? '';
-        this._phoneNumber = doctor.phoneNumber ?? '';
-        this._imageUrl = doctor.imageUrl ?? '';
-        this._assignedSeniorIds = doctor.assignedSeniorIds ?? [];
+        this._id = caregiver.id ?? 0;
+        this._organizationId = caregiver.organizationId;
+        this._userId = caregiver.userId ?? ''; // Empty string as default, backend will assign
+        this._firstName = caregiver.firstName ?? '';
+        this._lastName = caregiver.lastName ?? '';
+        this._age = caregiver.age ?? 0;
+        this._email = caregiver.email ?? '';
+        this._specialty = caregiver.specialty ?? '';
+        this._phoneNumber = caregiver.phoneNumber ?? '';
+        this._imageUrl = caregiver.imageUrl ?? '';
+        this._assignedSeniorIds = caregiver.assignedSeniorIds ?? [];
     }
 
     get organizationId(): number {
@@ -121,7 +121,7 @@ export class Doctor implements BaseEntity {
     }
 
     /**
-     * Domain logic: Assigns a senior citizen to this doctor
+     * Domain logic: Assigns a senior citizen to this caregiver
      */
     assignToSenior(seniorId: number): void {
         if (!this._assignedSeniorIds.includes(seniorId)) {
@@ -130,9 +130,10 @@ export class Doctor implements BaseEntity {
     }
 
     /**
-     * Domain logic: Unassigns a senior citizen from this doctor
+     * Domain logic: Unassigns a senior citizen from this caregiver
      */
     unassignFromSenior(seniorId: number): void {
         this._assignedSeniorIds = this._assignedSeniorIds.filter(id => id !== seniorId);
     }
 }
+

@@ -73,7 +73,7 @@
         <div class="photo-upload">
             <div class="form-field">
                 <label>{{ 'doctor.imageUrl' | translate }} ({{ 'doctor.imageUrlHint' | translate }}):</label>
-                <input type="url" formControlName="imageUrl" class="form-input" placeholder="https://ejemplo.com/imagen.jpg" />
+                <input type="url" formControlName="imageUrl" class="form-input" [placeholder]="'doctor.imageUrlPlaceholder' | translate" />
                 @if (form.get('imageUrl')?.invalid && form.get('imageUrl')?.touched) {
                     <div class="error-message">
                         {{ 'doctor.imageUrlError' | translate }}

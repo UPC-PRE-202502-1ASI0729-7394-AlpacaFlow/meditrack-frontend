@@ -11,7 +11,7 @@
       "doctor-list": "Doctor List",
       "patient-list": "Patients List",
       "senior-citizen-list": "Senior Citizen List",
-      "keeper-list": "Keeper List",
+      "caregiver-list": "Caregiver List",
       "support": "Support",
       "patientProfile": "Patient Profile",
       "seniorCitizenProfile": "Senior Citizen Profile",
@@ -40,6 +40,7 @@
     "problemDescription": "Describe the problem",
     "describeProblem": "Describe the complaint in detail...",
     "submitClaim": "Submit a claim",
+    "submissionSuccess": "Thank you for your submission! Our team will contact you shortly.",
     "technical": "Technical Issue",
     "billing": "Billing Question",
     "account": "Account Problem",
@@ -70,6 +71,10 @@
     "selectPatient": "Select Patient",
     "doctorProfile": "Doctor Profile",
     "assignedPatients": "Assigned Patients",
+    "assignedSeniorCitizens": "Assigned Senior Citizens",
+    "availableSeniorCitizens": "Available Senior Citizens",
+    "selectSeniorCitizen": "Select Senior Citizen",
+    "unassignSeniorCitizen": "Unassign Senior Citizen",
     "backToList": "Back to List",
     "unassignPatient": "Unassign Patient",
     "emailHint": "Email will be automatically generated with the institutional domain",
@@ -77,7 +82,11 @@
     "emailPlaceholder": "firstname.lastname",
     "imageUrl": "Image URL",
     "imageUrlHint": "Enter a valid image URL",
+    "imageUrlPlaceholder": "https://example.com/image.jpg",
     "imageUrlError": "Must be a valid image URL",
+    "photo": "Photo",
+    "clickToView": "Click to view details, double-click to open",
+    "assignedTo": "Assigned to",
     "unassignPatientDialog": {
       "title": "Unassign Patient",
       "message": "Do you want to unassign this patient from the doctor? The patient will remain registered in the system.",
@@ -94,7 +103,9 @@
       "required": "is required",
       "requiredFemale": "is required",
       "emailInvalid": "is required and must be valid",
-      "photoRequired": "Photo is required"
+      "photoRequired": "Photo is required",
+      "cannotAssignToCaregiver": "This senior citizen is already assigned to a caregiver. Cannot be assigned to a doctor (mutual exclusion).",
+      "assignError": "Error assigning senior citizen"
     }
   },
   "patient": {
@@ -152,12 +163,18 @@
   },
   "senior-citizen": {
     "fullName": "Full Name",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "birthDate": "Birth Date",
     "age": "Age",
     "gender": "Gender",
     "weight": "Weight",
     "height": "Height",
     "dni": "DNI",
     "deviceIot": "Device IoT",
+    "doctor": "Doctor",
+    "assignedTo": "Assigned to",
+    "notAssigned": "Not assigned",
     "empty": "Empty List of Senior Citizens",
     "add": "Add Senior Citizen",
     "uploadPhoto": "Upload Photo",
@@ -165,8 +182,8 @@
     "save": "Save",
     "cancel": "Cancel",
     "backToList": "Back To List",
-    "keeper": "Keeper",
-    "noKeeper": "No keeper assigned",
+    "caregiver": "Caregiver",
+    "noCaregiver": "No caregiver assigned",
     "imageUrl": "Image Url",
     "imageUrlHint": "Image Url Update",
     "imageUrlPlaceholder": "https://example.com/image.jpg",
@@ -181,6 +198,12 @@
       "message": "Are you sure you want to delete this senior citizen? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
+    },
+    "unassignSeniorCitizenDialog": {
+      "title": "Unassign Senior Citizen",
+      "message": "Do you want to unassign this senior citizen from the caregiver? The senior citizen will remain registered in the system.",
+      "cancel": "Cancel",
+      "confirm": "Unassign"
     },
     "units": {
       "kg": "kg",
@@ -210,7 +233,7 @@
       "systolic": "Systolic"
     }
   },
-  "keeper": {
+  "caregiver": {
     "firstName": "First Name",
     "lastName": "Last Name",
     "age": "Age",
@@ -221,30 +244,37 @@
     "dragFile": "Drag File",
     "save": "Save",
     "cancel": "Cancel",
-    "empty": "Empty List of Keepers",
-    "add": "Add Keeper",
+    "empty": "Empty List of Caregivers",
+    "add": "Add Caregiver",
     "backToList": "Back to List",
     "selectSeniorCitizen": "Select a Senior Citizen",
     "assignedSeniorCitizens": "Assigned Senior Citizen",
     "availableSeniorCitizens": "Available Senior Citizen",
-    "title": "Keeper",
+    "title": "Caregiver",
     "emailHint": "Email will be automatically generated with the institutional domain",
     "emailPlaceholderExample": "email@example.com",
     "emailPlaceholder": "firstname.lastname",
     "imageUrl": "Image URL",
     "imageUrlHint": "Enter a valid image URL",
+    "imageUrlPlaceholder": "https://example.com/image.jpg",
     "imageUrlError": "Must be a valid image URL",
+    "photo": "Photo",
+    "assignedTo": "Assigned to",
     "errors": {
       "required": "is required",
       "requiredFemale": "is required",
       "emailInvalid": "is required and must be valid",
-      "photoRequired": "Photo is required"
+      "photoRequired": "Photo is required",
+      "cannotAssignToDoctor": "This senior citizen is already assigned to a doctor. Cannot be assigned to a caregiver (mutual exclusion).",
+      "assignError": "Error assigning senior citizen"
     },
-    "deleteKeeperDialog": {
-      "title": "Delete Keeper",
-      "message": "Are you sure you want to delete this keeper?",
+    "deleteCaregiverDialog": {
+      "title": "Delete Caregiver",
+      "message": "Are you sure you want to delete this caregiver?",
       "cancel": "Cancel",
       "confirm": "Delete"
-    }
+    },
+    "unassignSeniorCitizen": "Unassign Senior Citizen",
+    "clickToView": "Click to view details"
   }
 }

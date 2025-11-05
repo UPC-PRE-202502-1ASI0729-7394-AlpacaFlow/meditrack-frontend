@@ -11,6 +11,7 @@ import {TimeApiService} from "../../../../shared/infrastructure/time-api.service
 import {TimeEntity} from "../../../../shared/domain/model/time.entity";
 import {LanguageSwitcher} from "../../../../shared/presentation/components/language-switcher/language-switcher";
 import {OrganizationStore} from "../../../application/organization.store";
+import {Organization} from "../../../domain/model/organization.entity";
 
 @Component({
   selector: 'app-organization-layout',
@@ -44,16 +45,22 @@ export class OrganizationLayout implements OnInit, OnDestroy {
 
   private userRoleSignal = signal<string>('');
   private currentUserIdSignal = signal<number | null>(null);
+  private organizationTypeSignal = signal<'clinica' | 'resident' | null>(null);
   
   userRole: string = '';
   currentUserId: number | null = null;
 
-  private navigationItemsConfig: { route: string; icon: string; label: string; roles: string[] }[] = [
-    { route: '/doctors', label: 'navigation.doctor-list', icon: 'person_add', roles: ['admin-clinica'] },
-    { route: '/patients', label: 'navigation.patient-list', icon: 'people', roles: ['admin-clinica', 'doctor'] },
-    { route: '/senior-citizens', label: 'navigation.senior-citizen-list', icon: 'people_add', roles: ['admin-casa-reposo', 'keeper']},
-    { route: '/keepers', label: 'navigation.keeper-list', icon: 'people', roles: ['admin-casa-reposo']},
-    { route: '/support', label: 'navigation.support', icon: 'headset_mic', roles: ['admin-clinica', 'admin-casa-reposo', 'doctor', 'keeper', 'allegado-premium'] }
+  private navigationItemsConfig: { 
+    route: string; 
+    icon: string; 
+    label: string; 
+    organizationTypes: ('clinica' | 'resident')[];
+    roles?: string[]; // Roles que pueden ver esta opción (undefined = todos los roles)
+  }[] = [
+    { route: '/doctors', label: 'navigation.doctor-list', icon: 'person_add', organizationTypes: ['clinica'], roles: ['admin'] }, // Solo admins pueden ver doctor list
+    { route: '/senior-citizens', label: 'navigation.senior-citizen-list', icon: 'people', organizationTypes: ['clinica', 'resident']},
+    { route: '/caregivers', label: 'navigation.caregiver-list', icon: 'people', organizationTypes: ['resident'], roles: ['admin'] }, // Solo admins pueden ver caregiver list
+    { route: '/support', label: 'navigation.support', icon: 'headset_mic', organizationTypes: ['clinica', 'resident'] }
   ];
 
   navigationItems = computed(() => {
@@ -66,60 +73,59 @@ export class OrganizationLayout implements OnInit, OnDestroy {
   });
 
   filteredNavigationItems = computed(() => {
+    const organizationType = this.organizationTypeSignal();
     const role = this.userRoleSignal();
     const userId = this.currentUserIdSignal();
     const currentRoute = this.currentRouteSignal(); // Leer el signal para reactividad
     const items = this.navigationItems();
     
-    if (!role) {
-      console.warn(' No user role set yet, returning empty navigation items');
+    if (!organizationType) {
+      console.warn('⚠️ No organization type set yet, returning empty navigation items');
       return [];
     }
     
-    let filtered = items.filter(item => item.roles.includes(role));
-    
-    // Si estamos en una ruta de patient, agregar las opciones del patient al sidenav
-    const patientId = this.getPatientIdFromRoute();
-    if (patientId && userId) {
-      const basePath = `/organization/${userId}/patients/${patientId}`;
-      const patientNavItems: { link: string; icon: string; label: string; roles: string[] }[] = [
-        { link: `${basePath}/profile`, icon: 'person', label: 'navigation.patientProfile', roles: ['admin-clinica', 'doctor'] }
-      ];
-      
-      if (role === 'doctor') {
-        patientNavItems.push(
-          { link: `${basePath}/statistics`, icon: 'bar_chart', label: 'navigation.statistics', roles: ['doctor'] },
-          { link: `${basePath}/alerts`, icon: 'notifications', label: 'navigation.alerts', roles: ['doctor'] }
-        );
+    // Filter by organization type and role
+    let filtered = items.filter(item => {
+      // Primero verificar que coincida con el tipo de organización
+      if (!item.organizationTypes.includes(organizationType)) {
+        return false;
       }
       
-      const patientItems = patientNavItems
-        .filter(item => item.roles.includes(role))
-        .map(item => ({ ...item, route: '' } as typeof filtered[0]));
-      filtered = [...filtered, ...patientItems];
-    }
+      // Si el item tiene roles definidos, verificar que el rol del usuario esté incluido
+      if (item.roles && item.roles.length > 0) {
+        return item.roles.includes(role);
+      }
+      
+      // Si no tiene roles definidos, está disponible para todos los roles
+      return true;
+    });
     
+    // Si estamos en una ruta de senior citizen, agregar las opciones del senior citizen al sidenav
     const seniorCitizenId = this.getSeniorCitizenIdFromRoute();
     if (seniorCitizenId && userId) {
       const basePath = `/organization/${userId}/senior-citizens/${seniorCitizenId}`;
-      const seniorCitizenNavItems: { link: string; icon: string; label: string; roles: string[] }[] = [
-        { link: `${basePath}/profile`, icon: 'person', label: 'navigation.seniorCitizenProfile', roles: ['admin-casa-reposo', 'keeper'] }
-      ];
+      const seniorCitizenNavItems: { link: string; icon: string; label: string; organizationTypes: ('clinica' | 'resident')[] }[] = [];
       
-      if (role === 'keeper') {
+      // Todos los usuarios pueden ver el perfil del senior citizen
+      seniorCitizenNavItems.push(
+        { link: `${basePath}/profile`, icon: 'person', label: 'navigation.seniorCitizenProfile', organizationTypes: ['clinica', 'resident'] }
+      );
+      
+      // Doctors and caregivers can see statistics and alerts when viewing a senior citizen
+      if (role === 'caregiver' || role === 'doctor') {
         seniorCitizenNavItems.push(
-          { link: `${basePath}/statistics`, icon: 'bar_chart', label: 'navigation.statistics', roles: ['keeper'] },
-          { link: `${basePath}/alerts`, icon: 'notifications', label: 'navigation.alerts', roles: ['keeper'] }
+          { link: `${basePath}/alerts`, icon: 'notifications', label: 'navigation.alerts', organizationTypes: ['clinica', 'resident'] },
+          { link: `${basePath}/statistics`, icon: 'bar_chart', label: 'navigation.statistics', organizationTypes: ['clinica', 'resident'] }
         );
       }
       
       const seniorCitizenItems = seniorCitizenNavItems
-        .filter(item => item.roles.includes(role))
-        .map(item => ({ ...item, route: '' } as typeof filtered[0]));
+        .filter(item => item.organizationTypes.includes(organizationType))
+        .map(item => ({ ...item, route: '', organizationTypes: item.organizationTypes } as typeof filtered[0]));
       filtered = [...filtered, ...seniorCitizenItems];
     }
     
-    console.log(`Filtering navigation for role "${role}", patientId: ${patientId || 'none'}, seniorCitizenId: ${seniorCitizenId || 'none'}, route: ${currentRoute}:`, {
+    console.log(`Filtering navigation for organization type "${organizationType}", role "${role}", seniorCitizenId: ${seniorCitizenId || 'none'}, route: ${currentRoute}:`, {
       totalItems: items.length,
       filteredCount: filtered.length,
       filteredItems: filtered.map(i => i.label)
@@ -127,29 +133,6 @@ export class OrganizationLayout implements OnInit, OnDestroy {
     return filtered;
   });
   
-       /**
-        * Obtiene el patientId de la ruta actual si estamos en una ruta de patient
-        */
-       private getPatientIdFromRoute(): number | null {
-         const url = this.currentRouteSignal() || this.router.url || '';
-         const match = url.match(/\/patients\/(\d+)/);
-         if (match && match[1]) {
-           return parseInt(match[1], 10);
-         }
-         
-         let currentRoute = this.route.firstChild;
-         while (currentRoute) {
-           const params = currentRoute.snapshot.paramMap;
-           const patientId = params.get('patientId');
-           if (patientId) {
-             return parseInt(patientId, 10);
-           }
-           currentRoute = currentRoute.firstChild;
-         }
-         
-         return null;
-       }
-
        /**
         * Obtiene el seniorCitizenId de la ruta actual si estamos en una ruta de senior citizen
         */
@@ -195,12 +178,42 @@ export class OrganizationLayout implements OnInit, OnDestroy {
         const role = this.organizationStore.getCurrentUserRole();
         this.userRole = role;
         this.userRoleSignal.set(role);
-        console.log(`Layout: userId=${userId}, role=${this.userRole}, organizationId=${this.organizationStore.getCurrentOrganizationId()}`);
-        console.log(`Navigation items for role "${this.userRole}":`, this.filteredNavigationItems().map(item => item.label));
+        
+        // Use effect to watch organization changes and update type
+        // Check organization type periodically or use a computed
+        const checkOrgType = () => {
+          const orgType = this.organizationStore.getCurrentOrganizationType();
+          if (orgType) {
+            this.organizationTypeSignal.set(orgType);
+            console.log(`Layout: userId=${userId}, role=${this.userRole}, organizationId=${this.organizationStore.getCurrentOrganizationId()}, organizationType=${orgType}`);
+            console.log(`Navigation items for organization type "${orgType}":`, this.filteredNavigationItems().map(item => item.label));
+          }
+        };
+        
+        // Check immediately
+        checkOrgType();
+        
+        // Check periodically (every 500ms) until we have the type
+        const checkInterval = setInterval(() => {
+          const orgType = this.organizationStore.getCurrentOrganizationType();
+          if (orgType) {
+            this.organizationTypeSignal.set(orgType);
+            clearInterval(checkInterval);
+          }
+        }, 500);
+        
+        // Clean up interval on destroy
+        if (this.userContextSubscription) {
+          this.userContextSubscription.unsubscribe();
+        }
+        this.userContextSubscription = new Subscription(() => clearInterval(checkInterval));
         
         const childRoute = this.route.firstChild;
         if (!childRoute || childRoute.snapshot.url.length === 0) {
-          this.redirectBasedOnRole(userId);
+          // Wait a bit for organization to load before redirecting
+          setTimeout(() => {
+            this.redirectBasedOnOrganizationType(userId);
+          }, 100);
         }
       }
     });
@@ -217,23 +230,19 @@ export class OrganizationLayout implements OnInit, OnDestroy {
            .subscribe((event: NavigationEnd) => {
              this.currentRouteSignal.set(event.url);
              
-             const role = this.organizationStore.getCurrentUserRole();
+             const organizationType = this.organizationTypeSignal();
              const userId = this.currentUserIdSignal();
-             if (userId && role) {
+             if (userId && organizationType) {
                const currentUrl = event.url;
-               const isValidRoute = this.isValidRouteForRole(currentUrl, role);
+               const isValidRoute = this.isValidRouteForOrganizationType(currentUrl, organizationType);
                
                if (!isValidRoute) {
-                 this.redirectBasedOnRole(userId);
+                 this.redirectBasedOnOrganizationType(userId);
                  return;
                }
              }
              
-             const patientId = this.getPatientIdFromRoute();
-             if (patientId && patientId > 0) {
-               this.organizationStore.loadPatientById(patientId);
-             }
-             const seniorCitizenId = this.getSeniorCitizenIdFromRoute();
+            const seniorCitizenId = this.getSeniorCitizenIdFromRoute();
              if (seniorCitizenId && seniorCitizenId > 0) {
                this.organizationStore.loadSeniorCitizenById(seniorCitizenId);
              }
@@ -307,18 +316,16 @@ export class OrganizationLayout implements OnInit, OnDestroy {
   }
 
   /**
-   * Verifica si la ruta actual es válida para el rol del usuario
+   * Verifica si la ruta actual es válida para el tipo de organización
    */
-  private isValidRouteForRole(url: string, role: string): boolean {
-    // Rutas permitidas por rol
-    const roleRoutes: Record<string, string[]> = {
-      'admin-clinica': ['doctors', 'patients', 'support'],
-      'admin-casa-reposo': ['keepers', 'senior-citizens', 'support'],
-      'doctor': ['patients', 'support'],
-      'keeper': ['senior-citizens', 'support']
+  private isValidRouteForOrganizationType(url: string, organizationType: 'clinica' | 'resident'): boolean {
+    // Rutas permitidas por tipo de organización
+    const organizationTypeRoutes: Record<'clinica' | 'resident', string[]> = {
+      'clinica': ['doctors', 'senior-citizens', 'support'],
+      'resident': ['caregivers', 'senior-citizens', 'support']
     };
     
-    const allowedRoutes = roleRoutes[role] || [];
+    const allowedRoutes = organizationTypeRoutes[organizationType] || [];
     
     const baseRouteMatch = url.match(/^\/organization\/(\d+)\/?$/);
     if (baseRouteMatch) {
@@ -329,23 +336,33 @@ export class OrganizationLayout implements OnInit, OnDestroy {
   }
 
   /**
-   * Redirige según el rol del usuario al llegar a la ruta base.
-   * admin-clinica → /doctors
-   * admin-casa-reposo → /keepers
-   * doctor → /patients
-   * keeper → /senior-citizens
+   * Redirige según el tipo de organización al llegar a la ruta base.
+   * clinica → /doctors
+   * resident → /caregivers
+   * También considera el rol del usuario para doctors y caregivers
    */
-  private redirectBasedOnRole(userId: number): void {
+  private redirectBasedOnOrganizationType(userId: number): void {
+    const organizationType = this.organizationTypeSignal();
     const role = this.organizationStore.getCurrentUserRole();
     let redirectPath = '/doctors';
     
-    if (role === 'admin-casa-reposo') {
-      redirectPath = '/keepers';
-    } else if (role === 'admin-clinica') {
+    if (organizationType === 'resident') {
+      // Para residencias, redirigir a caregivers
+      redirectPath = '/caregivers';
+    } else if (organizationType === 'clinica') {
+      // Para clínicas, redirigir a doctors
       redirectPath = '/doctors';
-    } else if (role === 'doctor') {
-      redirectPath = '/patients';
-    } else if (role === 'keeper') {
+    } else {
+      // Si no hay tipo de organización, usar el rol como fallback
+      if (role === 'admin-casa-reposo' || role === 'caregiver') {
+        redirectPath = '/caregivers';
+      } else if (role === 'admin-clinica' || role === 'doctor') {
+        redirectPath = '/doctors';
+      }
+    }
+    
+    // Para doctors y caregivers, siempre redirigir a senior-citizens
+    if (role === 'doctor' || role === 'caregiver') {
       redirectPath = '/senior-citizens';
     }
     

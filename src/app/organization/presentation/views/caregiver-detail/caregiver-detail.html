@@ -1,23 +1,23 @@
-<div class="doctor-detail-container">
-  <!-- Doctor Profile Section -->
-  <div class="doctor-profile-section">
-    <div class="doctor-avatar">
-      <img [src]="doctor?.imageUrl || '/assets/default-doctor.png'" 
-           [alt]="doctor?.fullName"
+<div class="caregiver-detail-container">
+  <!-- Caregiver Profile Section -->
+  <div class="caregiver-profile-section">
+    <div class="caregiver-avatar">
+      <img [src]="caregiver?.imageUrl || '/assets/default-caregiver.png'" 
+           [alt]="caregiver?.fullName"
            class="avatar-image">
     </div>
     
-    <div class="doctor-info">
-      <h2 class="doctor-name">{{ 'doctor.title' | translate }} {{ doctor?.fullName }}</h2>
-      <div class="doctor-details">
+    <div class="caregiver-info">
+      <h2 class="caregiver-name">{{ 'caregiver.title' | translate }} {{ caregiver?.fullName }}</h2>
+      <div class="caregiver-details">
         <div class="detail-item">
-          <span class="value">{{ 'doctor.age' | translate }}: {{ doctor?.age }} {{ 'doctor.phoneNumber' | translate }}: {{ doctor?.phoneNumber }}</span>
+          <span class="value">{{ 'caregiver.age' | translate }}: {{ caregiver?.age }} {{ 'caregiver.phoneNumber' | translate }}: {{ caregiver?.phoneNumber }}</span>
         </div>
         <div class="detail-item">
-          <span class="value">{{ 'doctor.specialty' | translate }}: {{ doctor?.specialty }}</span>
+          <span class="value">{{ 'caregiver.specialty' | translate }}: {{ caregiver?.specialty }}</span>
         </div>
         <div class="detail-item">
-          <span class="value">{{ 'doctor.email' | translate }}: {{ doctor?.email }}</span>
+          <span class="value">{{ 'caregiver.email' | translate }}: {{ caregiver?.email }}</span>
         </div>
       </div>
     </div>
@@ -28,7 +28,7 @@
 
   <!-- Assigned Senior Citizens Section -->
   <div class="assigned-senior-citizens-section">
-    <h3 class="section-title">{{ 'doctor.assignedSeniorCitizens' | translate }}</h3>
+    <h3 class="section-title">{{ 'caregiver.assignedSeniorCitizens' | translate }}</h3>
     
     @if (assignedSeniorCitizens.length === 0) {
       <div class="no-senior-citizens">
@@ -51,7 +51,7 @@
             <div class="senior-citizen-actions">
               <button class="action-btn delete-btn"
                       (click)="onUnassignSeniorCitizen(seniorCitizen, $event)"
-                      [title]="'doctor.unassignSeniorCitizen' | translate">
+                      [title]="'caregiver.unassignSeniorCitizen' | translate">
                 <mat-icon>delete</mat-icon>
               </button>
             </div>
@@ -63,18 +63,18 @@
 
   <!-- Available Senior Citizens Section -->
   <div class="available-senior-citizens-section">
-    <h3 class="section-title">{{ 'doctor.availableSeniorCitizens' | translate }}</h3>
+    <h3 class="section-title">{{ 'caregiver.availableSeniorCitizens' | translate }}</h3>
     
     <div class="senior-citizens-selector">
       <select class="senior-citizen-select" 
               [(ngModel)]="selectedSeniorCitizenId"
               (change)="onSeniorCitizenSelect($any($event.target).value)">
-        <option value="">{{ 'doctor.selectSeniorCitizen' | translate }}</option>
+        <option value="">{{ 'caregiver.selectSeniorCitizen' | translate }}</option>
         @for (seniorCitizen of availableSeniorCitizens; track seniorCitizen.id) {
-          <option [value]="seniorCitizen.id" [disabled]="seniorCitizen.assignedCaregiverId !== null">
+          <option [value]="seniorCitizen.id" [disabled]="seniorCitizen.assignedDoctorId !== null">
             {{ getSeniorCitizenFullName(seniorCitizen) }}
             @if (getAssignedPersonName(seniorCitizen)) {
-              - ({{ 'doctor.assignedTo' | translate }}: {{ getAssignedPersonName(seniorCitizen) }})
+              - ({{ 'caregiver.assignedTo' | translate }}: {{ getAssignedPersonName(seniorCitizen) }})
             }
           </option>
         }
@@ -85,7 +85,7 @@
               class="assign-button"
               [disabled]="!selectedSeniorCitizenId || !canAssignSelectedSeniorCitizen()"
               (click)="onAssignSeniorCitizen()">
-        {{ 'doctor.selectSeniorCitizen' | translate }}
+        {{ 'caregiver.selectSeniorCitizen' | translate }}
       </button>
     </div>
   </div>
@@ -96,7 +96,8 @@
             color="accent" 
             class="back-button"
             (click)="onBackToList()">
-      {{ 'doctor.backToList' | translate }}
+      {{ 'caregiver.backToList' | translate }}
     </button>
   </div>
 </div>
+

@@ -3,31 +3,31 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslatePipe } from '@ngx-translate/core';
-import { DoctorFormComponent } from '../doctor-form/doctor-form';
-import { DoctorItem } from '../../components/doctor-item/doctor-item';
 import { OrganizationStore } from '../../../application/organization.store';
-import { Doctor } from '../../../domain/model/doctor.entity';
-import {DeleteDoctorDialog} from "../../components/delete-doctor-dialog/delete-doctor-dialog";
+import { Caregiver } from '../../../domain/model/caregiver.entity';
+import { DeleteCaregiverDialog } from '../../components/delete-caregiver-dialog/delete-caregiver-dialog';
+import { CaregiverItem } from '../../components/caregiver-item/caregiver-item';
+import { CaregiverForm } from '../caregiver-form/caregiver-form';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-doctor-list',
+  selector: 'app-caregiver-list',
   standalone: true,
   imports: [
     CommonModule,
     MatButtonModule,
     MatDialogModule,
     TranslatePipe,
-    DoctorFormComponent,
-    DoctorItem
+    CaregiverForm,
+    CaregiverItem
   ],
-  templateUrl: './doctor-list.html',
-  styleUrls: ['./doctor-list.css']
+  templateUrl: './caregiver-list.html',
+  styleUrls: ['./caregiver-list.css']
 })
-export class DoctorList implements OnInit, OnDestroy {
+export class CaregiverListComponent implements OnInit, OnDestroy {
   showForm = false;
-  editingDoctor: Doctor | null = null;
+  editingCaregiver: Caregiver | null = null;
   private routeSubscription?: Subscription;
   private parentRouteSubscription?: Subscription;
 
@@ -45,14 +45,8 @@ export class DoctorList implements OnInit, OnDestroy {
       if (userIdStr) {
         const userId = parseInt(userIdStr, 10);
         const organizationId = this.organizationStore.getOrganizationIdByUserId(userId);
-        console.log(`🔄 DoctorList: Detected organization change, reloading doctors for userId: ${userId}, organizationId: ${organizationId}`);
-        this.organizationStore.loadDoctorsByOrganization(organizationId);
-        
-        // Log del estado actual del signal después de un pequeño delay
-        setTimeout(() => {
-          console.log(`👁️ DoctorList: Current doctorsSignal value:`, this.organizationStore.doctors());
-          console.log(`👁️ DoctorList: Doctors count in signal:`, this.organizationStore.doctors().length);
-        }, 1000);
+        console.log(`🔄 CaregiverList: Detected organization change, reloading caregivers for userId: ${userId}, organizationId: ${organizationId}`);
+        this.organizationStore.loadCaregiversByOrganization(organizationId);
       }
     });
 
@@ -63,14 +57,8 @@ export class DoctorList implements OnInit, OnDestroy {
       if (userIdStr) {
         const userId = parseInt(userIdStr, 10);
         const organizationId = this.organizationStore.getOrganizationIdByUserId(userId);
-        console.log(`🔄 DoctorList: Initial load for userId: ${userId}, organizationId: ${organizationId}`);
-        this.organizationStore.loadDoctorsByOrganization(organizationId);
-        
-        // Log del estado actual del signal después de un pequeño delay
-        setTimeout(() => {
-          console.log(`👁️ DoctorList: Current doctorsSignal value (initial):`, this.organizationStore.doctors());
-          console.log(`👁️ DoctorList: Doctors count in signal (initial):`, this.organizationStore.doctors().length);
-        }, 1000);
+        console.log(`🔄 CaregiverList: Initial load for userId: ${userId}, organizationId: ${organizationId}`);
+        this.organizationStore.loadCaregiversByOrganization(organizationId);
       }
     }
   }
@@ -84,13 +72,13 @@ export class DoctorList implements OnInit, OnDestroy {
     }
   }
 
-  openAddDoctorForm(): void {
-    this.editingDoctor = null;
+  openAddCaregiverForm(): void {
+    this.editingCaregiver = null;
     this.showForm = true;
   }
 
-  openEditDoctorForm(doctor: Doctor): void {
-    this.editingDoctor = doctor;
+  openEditCaregiverForm(caregiver: Caregiver): void {
+    this.editingCaregiver = caregiver;
     this.showForm = true;
   }
 
@@ -98,37 +86,38 @@ export class DoctorList implements OnInit, OnDestroy {
     this.showForm = false;
   }
 
-  onDoctorSaved(doctor: Doctor): void {
+  onCaregiverSaved(caregiver: Caregiver): void {
     // El store ya fue actualizado en el formulario
-    // Recargar la lista de doctors para asegurar que solo se muestren los de la organización actual
+    // Recargar la lista de caregivers para asegurar que solo se muestren los de la organización actual
     const userIdStr = this.route.parent?.snapshot.paramMap.get('id');
     if (userIdStr) {
       const userId = parseInt(userIdStr, 10);
       const organizationId = this.organizationStore.getOrganizationIdByUserId(userId);
       if (organizationId > 0) {
-        this.organizationStore.loadDoctorsByOrganization(organizationId);
+        this.organizationStore.loadCaregiversByOrganization(organizationId);
       }
     }
     // Cerrar el formulario
     this.showForm = false;
   }
 
-  onDoctorRemoved(doctor: Doctor): void {
-    const dialogRef = this.dialog.open(DeleteDoctorDialog, {
+  onCaregiverRemoved(caregiver: Caregiver): void {
+    const dialogRef = this.dialog.open(DeleteCaregiverDialog, {
       width: '400px',
       data: {
-        doctor: doctor
+        caregiver: caregiver
       }
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.organizationStore.deleteDoctor(doctor.id);
+        this.organizationStore.deleteCaregiver(caregiver.id);
       }
     });
   }
 
-  trackById(index: number, doctor: Doctor): number {
-    return doctor.id;
+  trackById(index: number, caregiver: Caregiver): number {
+    return caregiver.id;
   }
 }
+

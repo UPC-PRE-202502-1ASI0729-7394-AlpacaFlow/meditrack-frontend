@@ -1,18 +1,18 @@
 import { Injectable } from '@angular/core';
 import { BaseApi } from '../../shared/infrastructure/base-api';
 import { DoctorsApiEndpoint } from './doctor-api-endpoint';
-import { PatientsApiEndpoint } from './patient-api-endpoint';
-import { KeepersApiEndpoint } from './keeper-api-endpoint';
+import { CaregiversApiEndpoint } from './caregiver-api-endpoint';
 import { SeniorCitizensApiEndpoint } from './senior-citizen-api-endpoint';
+import { OrganizationsApiEndpoint } from './organization-api-endpoint';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Doctor } from '../domain/model/doctor.entity';
-import { Patient } from '../domain/model/patient.entity';
-import { Keeper } from '../domain/model/keeper.entity';
+import { Caregiver } from '../domain/model/caregiver.entity';
 import { SeniorCitizen } from '../domain/model/senior-citizen.entity';
+import { Organization } from '../domain/model/organization.entity';
 
 /**
- * API service for managing organization-related operations (for doctors, patients, etc.)
+ * API service for managing organization-related operations (for doctors, caregivers, senior citizens, etc.)
  */
 @Injectable({
   providedIn: 'root'
@@ -20,17 +20,17 @@ import { SeniorCitizen } from '../domain/model/senior-citizen.entity';
 export class OrganizationApi extends BaseApi {
 
   private readonly doctorsEndpoint: DoctorsApiEndpoint;
-  private readonly patientsEndpoint: PatientsApiEndpoint;
-  private readonly keepersEndpoint: KeepersApiEndpoint;
+  private readonly caregiversEndpoint: CaregiversApiEndpoint;
   private readonly seniorCitizensEndpoint: SeniorCitizensApiEndpoint;
+  private readonly organizationsEndpoint: OrganizationsApiEndpoint;
 
   constructor(
     http: HttpClient) {
     super();
     this.doctorsEndpoint = new DoctorsApiEndpoint(http);
-    this.patientsEndpoint = new PatientsApiEndpoint(http);
-    this.keepersEndpoint = new KeepersApiEndpoint(http);
+    this.caregiversEndpoint = new CaregiversApiEndpoint(http);
     this.seniorCitizensEndpoint = new SeniorCitizensApiEndpoint(http);
+    this.organizationsEndpoint = new OrganizationsApiEndpoint(http);
   }
 
   /**
@@ -87,119 +87,66 @@ export class OrganizationApi extends BaseApi {
   }
 
   /**
-   * Fetches all patients from the API.
-   * @returns An Observable emitting an array of Patient entities.
+   * Fetches senior citizens by doctor ID from the API.
+   * @param doctorId - The doctor ID to filter senior citizens.
+   * @returns An Observable emitting an array of SeniorCitizen entities.
    */
-  getPatients(): Observable<Patient[]> {
-    return this.patientsEndpoint.getAll();
-  }
-
-  /**
-   * Fetches a patient by its ID from the API.
-   * @param id - The ID of the patient to fetch.
-   * @returns An Observable emitting the Patient entity or null if not found.
-   */
-  getPatientById(id: number): Observable<Patient | null> {
-    return this.patientsEndpoint.getById(id);
-  }
-
-  /**
-   * Creates a new patient via the API.
-   * @param patient - The Patient entity to create.
-   * @returns An Observable emitting the created Patient entity.
-   */
-  createPatient(patient: Patient): Observable<Patient> {
-    return this.patientsEndpoint.create(patient);
-  }
-
-  /**
-   * Updates an existing patient via the API.
-   * @param patient - The Patient entity to update.
-   * @returns An Observable emitting the updated Patient entity.
-   */
-  updatePatient(patient: Patient): Observable<Patient> {
-    return this.patientsEndpoint.update(patient, patient.id);
-  }
-
-  /**
-   * Deletes a patient by its ID via the API.
-   * @param id - The ID of the patient to delete.
-   * @returns An Observable emitting void upon successful deletion.
-   */
-  deletePatient(id: number): Observable<void> {
-    return this.patientsEndpoint.delete(id);
-  }
-
-  /**
-   * Fetches patients by organization ID from the API.
-   * @param organizationId - The organization ID to filter patients.
-   * @returns An Observable emitting an array of Patient entities.
-   */
-  getPatientsByOrganization(organizationId: number): Observable<Patient[]> {
-    return this.patientsEndpoint.getByOrganizationId(organizationId);
-  }
-
-  /**
-   * Fetches patients by doctor ID from the API.
-   * @param doctorId - The doctor ID to filter patients.
-   * @returns An Observable emitting an array of Patient entities.
-   */
-  getPatientsByDoctor(doctorId: number): Observable<Patient[]> {
-    return this.patientsEndpoint.getByDoctorId(doctorId);
+  getSeniorCitizensByDoctor(doctorId: number): Observable<SeniorCitizen[]> {
+    return this.seniorCitizensEndpoint.getByDoctorId(doctorId);
   }
   
 
   /**
-   * Fetches all keepers from the API.
-   * @returns An Observable emitting an array of Keeper entities.
+   * Fetches all caregivers from the API.
+   * @returns An Observable emitting an array of Caregiver entities.
    */
-  getKeepers(): Observable<Keeper[]> {
-    return this.keepersEndpoint.getAll();
+  getCaregivers(): Observable<Caregiver[]> {
+    return this.caregiversEndpoint.getAll();
   }
 
   /**
-   * Fetches a keeper by its ID from the API.
-   * @param id - The ID of the keeper to fetch.
-   * @returns An Observable emitting the Keeper entity or null if not found.
+   * Fetches a caregiver by its ID from the API.
+   * @param id - The ID of the caregiver to fetch.
+   * @returns An Observable emitting the Caregiver entity or null if not found.
    */
-  getKeeperById(id: number): Observable<Keeper | null> {
-    return this.keepersEndpoint.getById(id);
+  getCaregiverById(id: number): Observable<Caregiver | null> {
+    return this.caregiversEndpoint.getById(id);
   }
 
   /**
-   * Creates a new keeper via the API.
-   * @param keeper - The Keeper entity to create.
-   * @returns An Observable emitting the created Keeper entity.
+   * Creates a new caregiver via the API.
+   * @param caregiver - The Caregiver entity to create.
+   * @returns An Observable emitting the created Caregiver entity.
    */
-  createKeeper(keeper: Keeper): Observable<Keeper> {
-    return this.keepersEndpoint.create(keeper);
+  createCaregiver(caregiver: Caregiver): Observable<Caregiver> {
+    return this.caregiversEndpoint.create(caregiver);
   }
 
   /**
-   * Updates an existing keeper via the API.
-   * @param keeper - The Keeper entity to update.
-   * @returns An Observable emitting the updated Keeper entity.
+   * Updates an existing caregiver via the API.
+   * @param caregiver - The Caregiver entity to update.
+   * @returns An Observable emitting the updated Caregiver entity.
    */
-  updateKeeper(keeper: Keeper): Observable<Keeper> {
-    return this.keepersEndpoint.update(keeper, keeper.id);
+  updateCaregiver(caregiver: Caregiver): Observable<Caregiver> {
+    return this.caregiversEndpoint.update(caregiver, caregiver.id);
   }
 
   /**
-   * Deletes a keeper by its ID via the API.
-   * @param id - The ID of the keeper to delete.
+   * Deletes a caregiver by its ID via the API.
+   * @param id - The ID of the caregiver to delete.
    * @returns An Observable emitting void upon successful deletion.
    */
-  deleteKeeper(id: number): Observable<void> {
-    return this.keepersEndpoint.delete(id);
+  deleteCaregiver(id: number): Observable<void> {
+    return this.caregiversEndpoint.delete(id);
   }
 
   /**
-   * Fetches keepers by organization ID from the API.
-   * @param organizationId - The organization ID to filter keepers.
-   * @returns An Observable emitting an array of Keeper entities.
+   * Fetches caregivers by organization ID from the API.
+   * @param organizationId - The organization ID to filter caregivers.
+   * @returns An Observable emitting an array of Caregiver entities.
    */
-  getKeepersByOrganization(organizationId: number): Observable<Keeper[]> {
-    return this.keepersEndpoint.getByOrganizationId(organizationId);
+  getCaregiversByOrganization(organizationId: number): Observable<Caregiver[]> {
+    return this.caregiversEndpoint.getByOrganizationId(organizationId);
   }
 
   /**
@@ -256,11 +203,23 @@ export class OrganizationApi extends BaseApi {
   }
 
   /**
-   * Fetches senior citizens by keeper ID from the API.
-   * @param keeperId - The keeper ID to filter senior citizens.
+   * Fetches senior citizens by caregiver ID from the API.
+   * @param caregiverId - The caregiver ID to filter senior citizens.
    * @returns An Observable emitting an array of SeniorCitizen entities.
    */
-  getSeniorCitizensByKeeper(keeperId: number): Observable<SeniorCitizen[]> {
-    return this.seniorCitizensEndpoint.getByKeeperId(keeperId);
+  getSeniorCitizensByCaregiver(caregiverId: number): Observable<SeniorCitizen[]> {
+    return this.seniorCitizensEndpoint.getByCaregiverId(caregiverId);
   }
+
+  /**
+   * Fetches an organization by its ID from the API.
+   * @param id - The ID of the organization to fetch.
+   * @returns An Observable emitting the Organization entity or null if not found.
+   */
+  getOrganizationById(id: number): Observable<Organization> {
+    return this.organizationsEndpoint.getById(id);
+  }
+
+  // Note: Assignment methods removed - assignments are now part of the entities themselves (assignedSeniorIds for doctors/caregivers, assignedDoctorId/assignedCaregiverId for senior citizens - single assignment only)
+  // The backend will handle junction tables when updating Doctor/Caregiver/SeniorCitizen entities
 }

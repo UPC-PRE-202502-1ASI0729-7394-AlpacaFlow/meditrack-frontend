@@ -35,11 +35,11 @@ export class BloodPressure implements AfterViewInit, OnDestroy {
         const ctx = this.chartCanvas.nativeElement.getContext('2d');
         if (!ctx) return;
 
-        const bloodPressureLabel = this.translateService.instant('patient.statistics.bloodPressure');
-        const bloodPressureTitle = this.translateService.instant('patient.statistics.bloodPressureTitle');
-        const diastolicLabel = this.translateService.instant('patient.statistics.diastolic');
-        const systolicLabel = this.translateService.instant('patient.statistics.systolic');
-        const mmhgLabel = this.translateService.instant('patient.statistics.mmhg');
+        const bloodPressureLabel = this.translateService.instant('senior-citizen.statistics.bloodPressure');
+        const bloodPressureTitle = this.translateService.instant('senior-citizen.statistics.bloodPressureTitle');
+        const diastolicLabel = this.translateService.instant('senior-citizen.statistics.diastolic');
+        const systolicLabel = this.translateService.instant('senior-citizen.statistics.systolic');
+        const mmhgLabel = this.translateService.instant('senior-citizen.statistics.mmhg');
 
         this.chartInstance = new Chart(ctx, {
             type: 'bar',
