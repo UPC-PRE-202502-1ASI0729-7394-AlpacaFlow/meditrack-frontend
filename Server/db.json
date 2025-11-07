@@ -76,7 +76,6 @@
       "email": "ana.paredes@clinicaortega.com",
       "image_url": "https://www.unir.net/wp-content/uploads/2024/04/Cuales-son-los-pacientes-geriatricos-y-que-tipos-de-cuidados-requieren2.webp",
       "assignedSeniorIds": [
-        1,
         5
       ]
     },
@@ -105,7 +104,8 @@
       "email": "juan.gonzalez@clinicaortega.com",
       "image_url": "https://xurxodev.com/content/images/2020/06/bloc-pattern-clean-architecture-reactjs.png",
       "assignedSeniorIds": [
-        4
+        4,
+        1
       ]
     }
   ],
