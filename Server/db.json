@@ -476,6 +476,23 @@
       "assignedDoctorId": null,
       "assignedCaregiverId": null,
       "alerts": []
+    },
+    {
+      "id": 7,
+      "org_id": 1,
+      "first_name": "luisito",
+      "last_name": "avsd",
+      "birth_date": "1902-01-21",
+      "age": 123,
+      "gender": "masculino",
+      "weight": 100,
+      "dni": "13123123",
+      "height": 100,
+      "profile_image": "https://clinicadeladultomayor.com/wp-content/uploads/2022/06/img-para-blog-2.2.png",
+      "device_id": 13,
+      "assignedDoctorId": null,
+      "assignedCaregiverId": null,
+      "alerts": []
     }
   ]
 }

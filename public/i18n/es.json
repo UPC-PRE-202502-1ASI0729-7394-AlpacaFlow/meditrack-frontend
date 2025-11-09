@@ -171,7 +171,7 @@
     "weight": "Peso",
     "height": "Altura",
     "dni": "DNI",
-    "deviceIot": "Dispositivo IoT",
+    "deviceId": "ID del Dispositivo",
     "doctor": "Doctor",
     "assignedTo": "Asignado a",
     "notAssigned": "No asignado",

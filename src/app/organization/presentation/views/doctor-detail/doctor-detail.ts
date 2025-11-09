@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -28,11 +28,32 @@ import { MatIconModule } from '@angular/material/icon';
   styleUrls: ['./doctor-detail.css']
 })
 export class DoctorDetail implements OnInit {
-  doctor: Doctor | null = null;
-  assignedSeniorCitizens: SeniorCitizen[] = [];
-  availableSeniorCitizens: SeniorCitizen[] = [];
+  doctor = signal<Doctor | null>(null);
   selectedSeniorCitizenId: number | null = null;
   doctorTitle: string = 'Dr.'; // Default, will be updated from translation
+
+  // Computed signals that reactively update when store changes
+  assignedSeniorCitizens = computed(() => {
+    const currentDoctor = this.doctor();
+    if (!currentDoctor) return [];
+    
+    const allSeniorCitizens = this.organizationStore.seniorCitizens();
+    return allSeniorCitizens.filter(sc => 
+      sc.assignedDoctorId === currentDoctor.id
+    );
+  });
+
+  availableSeniorCitizens = computed(() => {
+    const currentDoctor = this.doctor();
+    if (!currentDoctor) return [];
+    
+    const allSeniorCitizens = this.organizationStore.seniorCitizens();
+    // Filter: same organization, exclude only those already assigned to THIS doctor (they appear in assigned list)
+    return allSeniorCitizens.filter(sc => 
+      sc.organizationId === currentDoctor.organizationId && 
+      sc.assignedDoctorId !== currentDoctor.id // Not assigned to this doctor (they're in the assigned list)
+    );
+  });
 
   constructor(
     private route: ActivatedRoute,
@@ -58,33 +79,9 @@ export class DoctorDetail implements OnInit {
     // Get doctor from store
     const doctor = this.organizationStore.doctors().find(d => d.id === id);
     if (doctor) {
-      this.doctor = doctor;
-      this.loadAssignedSeniorCitizens(id);
-      this.loadAvailableSeniorCitizens(doctor.organizationId);
+      this.doctor.set(doctor);
+      // No need to manually load lists - computed signals will update automatically
     }
-  }
-
-  loadAssignedSeniorCitizens(doctorId: number): void {
-    // Get senior citizens assigned to this doctor using senior citizen's assignedDoctorId
-    const allSeniorCitizens = this.organizationStore.seniorCitizens();
-    this.assignedSeniorCitizens = allSeniorCitizens.filter(sc => 
-      sc.assignedDoctorId === doctorId
-    );
-  }
-
-  loadAvailableSeniorCitizens(organizationId: number): void {
-    // Get all senior citizens from the same organization
-    // Show all of them, but display if they're already assigned to another doctor or caregiver
-    const allSeniorCitizens = this.organizationStore.seniorCitizens();
-    if (!this.doctor) {
-      this.availableSeniorCitizens = [];
-      return;
-    }
-    // Filter: same organization, exclude only those already assigned to THIS doctor (they appear in assigned list)
-    this.availableSeniorCitizens = allSeniorCitizens.filter(sc => 
-      sc.organizationId === organizationId && 
-      sc.assignedDoctorId !== this.doctor!.id // Not assigned to this doctor (they're in the assigned list)
-    );
   }
 
   /**
@@ -114,8 +111,9 @@ export class DoctorDetail implements OnInit {
    * @returns true if assigned to another doctor or caregiver
    */
   isAssignedToAnother(seniorCitizen: SeniorCitizen): boolean {
-    if (!this.doctor) return false;
-    return (seniorCitizen.assignedDoctorId !== null && seniorCitizen.assignedDoctorId !== this.doctor.id) ||
+    const currentDoctor = this.doctor();
+    if (!currentDoctor) return false;
+    return (seniorCitizen.assignedDoctorId !== null && seniorCitizen.assignedDoctorId !== currentDoctor.id) ||
            seniorCitizen.assignedCaregiverId !== null;
   }
 
@@ -125,7 +123,7 @@ export class DoctorDetail implements OnInit {
    */
   canAssignSelectedSeniorCitizen(): boolean {
     if (!this.selectedSeniorCitizenId) return false;
-    const selectedSenior = this.availableSeniorCitizens.find(sc => sc.id === this.selectedSeniorCitizenId);
+    const selectedSenior = this.availableSeniorCitizens().find(sc => sc.id === this.selectedSeniorCitizenId);
     if (!selectedSenior) return false;
     // Block if assigned to caregiver (exclusión mutua)
     return selectedSenior.assignedCaregiverId === null;
@@ -136,7 +134,8 @@ export class DoctorDetail implements OnInit {
   }
 
   onAssignSeniorCitizen(): void {
-    if (this.selectedSeniorCitizenId && this.doctor) {
+    const currentDoctor = this.doctor();
+    if (this.selectedSeniorCitizenId && currentDoctor) {
       // Check if the selected senior citizen is already assigned to another
       const selectedSenior = this.organizationStore.seniorCitizens().find(sc => sc.id === this.selectedSeniorCitizenId);
       if (selectedSenior && this.isAssignedToAnother(selectedSenior)) {
@@ -153,13 +152,9 @@ export class DoctorDetail implements OnInit {
       try {
         // Use the organization store to assign senior citizen to doctor
         // This will automatically unassign from previous doctor if needed
-        this.organizationStore.assignSeniorCitizenToDoctor(this.doctor.id, this.selectedSeniorCitizenId);
+        this.organizationStore.assignSeniorCitizenToDoctor(currentDoctor.id, this.selectedSeniorCitizenId);
         
-        // Refresh the lists after a short delay to allow store to update
-        setTimeout(() => {
-          this.loadAssignedSeniorCitizens(this.doctor!.id);
-          this.loadAvailableSeniorCitizens(this.doctor!.organizationId);
-        }, 100);
+        // No need to manually refresh - computed signals will update automatically when store changes
         this.selectedSeniorCitizenId = null;
       } catch (error) {
         console.error('Error assigning senior citizen:', error);
@@ -171,28 +166,38 @@ export class DoctorDetail implements OnInit {
   }
 
   /**
-   * Obtiene el userId de la ruta padre (organization/:id)
+   * Obtiene organizationId, userRole y userId de la ruta padre
    */
-  private getUserIdFromRoute(): number | null {
-    // Intentar obtener el userId de la ruta padre
+  private getRouteParams(): { organizationId: number | null; userRole: string | null; userId: number | null } {
     let currentRoute: ActivatedRoute | null = this.route.parent;
     while (currentRoute) {
       const params = currentRoute.snapshot.paramMap;
-      const userId = params.get('id');
-      if (userId) {
-        return parseInt(userId, 10);
+      const organizationId = params.get('organizationId');
+      const userRole = params.get('userRole');
+      const userId = params.get('userId');
+      
+      if (organizationId) {
+        return {
+          organizationId: parseInt(organizationId, 10),
+          userRole: userRole,
+          userId: userId ? parseInt(userId, 10) : null
+        };
       }
       currentRoute = currentRoute.parent;
     }
-    return null;
+    return { organizationId: null, userRole: null, userId: null };
   }
 
   onBackToList(): void {
-    const userId = this.getUserIdFromRoute();
-    if (userId) {
-      this.router.navigate(['/organization', userId, 'doctors']);
+    const { organizationId, userRole, userId } = this.getRouteParams();
+    if (organizationId) {
+      if (userRole && userId) {
+        this.router.navigate(['/organization', organizationId, userRole, userId, 'doctors']);
+      } else {
+        this.router.navigate(['/organization', organizationId, 'doctors']);
+      }
     } else {
-      console.error('❌ DoctorDetail: Could not find userId in route, navigating to default');
+      console.error('DoctorDetail: Could not find organizationId in route, navigating to default');
       this.router.navigate(['/organization/1/doctors']);
     }
   }
@@ -212,16 +217,13 @@ export class DoctorDetail implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result && this.doctor) {
+      const currentDoctor = this.doctor();
+      if (result && currentDoctor) {
         try {
           // Use the organization store to unassign senior citizen from doctor
-          this.organizationStore.unassignSeniorCitizenFromDoctor(this.doctor.id, seniorCitizen.id);
+          this.organizationStore.unassignSeniorCitizenFromDoctor(currentDoctor.id, seniorCitizen.id);
           
-          // Refresh the lists after a short delay to allow store to update
-          setTimeout(() => {
-            this.loadAssignedSeniorCitizens(this.doctor!.id);
-            this.loadAvailableSeniorCitizens(this.doctor!.organizationId);
-          }, 100);
+          // No need to manually refresh - computed signals will update automatically when store changes
         } catch (error) {
           console.error('Error unassigning senior citizen:', error);
         }

@@ -19,45 +19,51 @@ export class DoctorsAssembler implements
   }
 
   /**
-   * Converts a DoctorResource (database schema - snake_case) to a Doctor entity (domain - camelCase).
-   * Maps database field names to domain entity property names.
-   * @param resource - The resource to convert (from backend API, uses database field names).
+   * Converts a DoctorResource (backend JSON - camelCase) to a Doctor entity (domain - camelCase).
+   * Maps backend JSON property names to domain entity property names.
+   * @param resource - The resource to convert (from backend API, uses camelCase).
    * @returns The converted Doctor entity (domain model, uses camelCase).
    */
   toEntityFromResource(resource: DoctorResource): Doctor {
+    // Convert userId from number | null | undefined to number | null (handle potential string from old API)
+    let userId: number | null | undefined = resource.userId;
+    if (typeof resource.userId === 'string') {
+      userId = resource.userId ? parseInt(resource.userId, 10) : null;
+    }
+    
     return new Doctor({
-      id: resource.id, // BD: doctor_id → Entity: id
-      organizationId: resource.org_id, // BD: org_id → Entity: organizationId
-      userId: resource.user_id, // BD: user_id → Entity: userId (Optional)
-      firstName: resource.first_name, // BD: first_name → Entity: firstName
-      lastName: resource.last_name, // BD: last_name → Entity: lastName
-      age: resource.age, // Optional, may not be in BD
-      email: resource.email, // Optional, may not be in BD
-      specialty: resource.specialty, // BD: specialty → Entity: specialty
-      phoneNumber: resource.phone_number ?? '', // BD: phone_number → Entity: phoneNumber
-      imageUrl: resource.image_url ?? '', // Optional, may not be in BD
+      id: resource.id,
+      organizationId: resource.organizationId,
+      userId: userId ?? null, // Optional, convert undefined to null
+      firstName: resource.firstName,
+      lastName: resource.lastName,
+      age: resource.age, // Optional
+      email: resource.email, // Optional
+      specialty: resource.specialty,
+      phoneNumber: resource.phoneNumber ?? '',
+      imageUrl: resource.imageUrl ?? '',
       assignedSeniorIds: resource.assignedSeniorIds ?? [] // From Doctor_assignments table
     });
   }
 
   /**
-   * Converts a Doctor entity (domain - camelCase) to a DoctorResource (database schema - snake_case).
-   * Maps domain entity property names to database field names for the backend API.
+   * Converts a Doctor entity (domain - camelCase) to a DoctorResource (backend JSON - camelCase).
+   * Maps domain entity property names to backend JSON property names.
    * @param entity - The entity to convert (domain model, uses camelCase).
-   * @returns The converted DoctorResource (for backend API, uses database field names).
+   * @returns The converted DoctorResource (for backend API, uses camelCase).
    */
   toResourceFromEntity(entity: Doctor): DoctorResource {
     return {
-      id: entity.id, // Entity: id → BD: doctor_id
-      org_id: entity.organizationId, // Entity: organizationId → BD: org_id
-      user_id: entity.userId || undefined, // Entity: userId → BD: user_id (Optional)
-      first_name: entity.firstName, // Entity: firstName → BD: first_name
-      last_name: entity.lastName, // Entity: lastName → BD: last_name
-      specialty: entity.specialty, // Entity: specialty → BD: specialty
-      phone_number: entity.phoneNumber, // Entity: phoneNumber → BD: phone_number
+      id: entity.id,
+      organizationId: entity.organizationId,
+      userId: entity.userId || undefined, // Optional
+      firstName: entity.firstName,
+      lastName: entity.lastName,
+      specialty: entity.specialty,
+      phoneNumber: entity.phoneNumber,
       age: entity.age, // Optional
       email: entity.email, // Optional
-      image_url: entity.imageUrl, // Optional
+      imageUrl: entity.imageUrl, // Optional
       assignedSeniorIds: entity.assignedSeniorIds // For Doctor_assignments table
     } as DoctorResource;
   }

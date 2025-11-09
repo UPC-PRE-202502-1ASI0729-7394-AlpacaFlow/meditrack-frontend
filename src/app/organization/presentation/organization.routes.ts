@@ -22,9 +22,24 @@ const support = () =>
     import('./views/support/support').then(m => m.Support);
 
 export const organizationRoutes: Routes = [
-
     {
-        path: ':id',
+        path: ':organizationId/:userRole/:userId',
+        loadComponent: organizationLayout,
+        children: [
+            { path: 'doctors', loadComponent: doctorList, data: { title: 'Doctors' } },
+            { path: 'doctors/:id', loadComponent: doctorDetail, data: { title: 'Doctor Detail' } },
+            { path: 'caregivers', loadComponent: caregiverList, data: { title: 'Caregivers' } },
+            { path: 'caregivers/:id', loadComponent: caregiverDetail, data: { title: 'Caregiver Detail' } },
+            { path: 'senior-citizens', loadComponent: seniorCitizenList, data: { title: 'Senior Citizens' } },
+            { path: 'senior-citizens/:id/profile', loadComponent: seniorCitizenDetail, data: { title: 'Senior Citizen Profile' } },
+            { path: 'senior-citizens/:id/alerts', loadComponent: seniorCitizenAlertList, data: { title: 'Senior Citizen Alerts' } },
+            { path: 'senior-citizens/:id/statistics', loadComponent: seniorCitizenStatistic, data: { title: 'Senior Citizen Statistics' } },
+            { path: 'senior-citizens/:id', redirectTo: 'senior-citizens/:id/profile', pathMatch: 'full' },
+            { path: 'support', loadComponent: support, data: { title: 'Support' } }
+        ]
+    },
+    {
+        path: ':organizationId',
         loadComponent: organizationLayout,
         children: [
             { path: 'doctors', loadComponent: doctorList, data: { title: 'Doctors' } },

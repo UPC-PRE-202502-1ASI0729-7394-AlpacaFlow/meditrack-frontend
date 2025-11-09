@@ -1,4 +1,4 @@
-import {Component, OnDestroy, OnInit, inject, ChangeDetectorRef, signal, computed} from '@angular/core';
+import {Component, OnDestroy, OnInit, inject, ChangeDetectorRef, signal, computed, effect, Injector, runInInjectionContext} from '@angular/core';
 import {MatSidenav, MatSidenavContainer, MatSidenavContent} from "@angular/material/sidenav";
 import {TranslatePipe} from "@ngx-translate/core";
 import {MatToolbar} from "@angular/material/toolbar";
@@ -40,12 +40,30 @@ export class OrganizationLayout implements OnInit, OnDestroy {
   private currentRouteSignal = signal<string>('');
   private timeSubscription?: Subscription;
   private routerSubscription?: Subscription;
-  private userContextSubscription?: Subscription;
   private paramMapSubscription?: Subscription;
 
   private userRoleSignal = signal<string>('');
   private currentUserIdSignal = signal<number | null>(null);
-  private organizationTypeSignal = signal<'clinica' | 'resident' | null>(null);
+  private currentOrganizationIdSignal = signal<number | null>(null);
+  
+  // Computed signals for better reactivity
+  organizationType = computed(() => {
+    const org = this.organizationStore.currentOrganization();
+    return org?.type || null;
+  });
+  
+  currentOrganizationId = computed(() => {
+    // Prioritize organizationId from route, then from store
+    return this.currentOrganizationIdSignal() || this.organizationStore.getCurrentOrganizationId();
+  });
+  
+  isLoading = computed(() => {
+    return this.organizationStore.loading();
+  });
+  
+  error = computed(() => {
+    return this.organizationStore.error();
+  });
   
   userRole: string = '';
   currentUserId: number | null = null;
@@ -54,18 +72,24 @@ export class OrganizationLayout implements OnInit, OnDestroy {
     route: string; 
     icon: string; 
     label: string; 
-    organizationTypes: ('clinica' | 'resident')[];
+    organizationTypes: ('clinic' | 'resident')[];
     roles?: string[]; // Roles que pueden ver esta opción (undefined = todos los roles)
   }[] = [
-    { route: '/doctors', label: 'navigation.doctor-list', icon: 'person_add', organizationTypes: ['clinica'], roles: ['admin'] }, // Solo admins pueden ver doctor list
-    { route: '/senior-citizens', label: 'navigation.senior-citizen-list', icon: 'people', organizationTypes: ['clinica', 'resident']},
+    { route: '/doctors', label: 'navigation.doctor-list', icon: 'person_add', organizationTypes: ['clinic'], roles: ['admin'] }, // Solo admins pueden ver doctor list
+    { route: '/senior-citizens', label: 'navigation.senior-citizen-list', icon: 'people', organizationTypes: ['clinic', 'resident']},
     { route: '/caregivers', label: 'navigation.caregiver-list', icon: 'people', organizationTypes: ['resident'], roles: ['admin'] }, // Solo admins pueden ver caregiver list
-    { route: '/support', label: 'navigation.support', icon: 'headset_mic', organizationTypes: ['clinica', 'resident'] }
+    { route: '/support', label: 'navigation.support', icon: 'headset_mic', organizationTypes: ['clinic', 'resident'] }
   ];
 
   navigationItems = computed(() => {
+    const organizationId = this.currentOrganizationId();
     const userId = this.currentUserIdSignal();
-    const basePath = userId ? `/organization/${userId}` : '/organization';
+    const userRole = this.userRoleSignal();
+    // Si hay userId y userRole, incluir en la ruta: /organization/2/admin/5/doctors
+    // Si no hay userId, usar: /organization/2/doctors
+    const basePath = organizationId 
+      ? (userId && userRole ? `/organization/${organizationId}/${userRole}/${userId}` : `/organization/${organizationId}`)
+      : '/organization';
     return this.navigationItemsConfig.map(item => ({
       ...item,
       link: `${basePath}${item.route}`
@@ -73,14 +97,18 @@ export class OrganizationLayout implements OnInit, OnDestroy {
   });
 
   filteredNavigationItems = computed(() => {
-    const organizationType = this.organizationTypeSignal();
-    const role = this.userRoleSignal();
+    const organizationType = this.organizationType();
+    // Leer el rol del signal local, pero si está vacío, leer del store directamente
+    let role = this.userRoleSignal();
+    if (!role) {
+      role = this.organizationStore.getCurrentUserRole();
+    }
     const userId = this.currentUserIdSignal();
     const currentRoute = this.currentRouteSignal(); // Leer el signal para reactividad
     const items = this.navigationItems();
     
     if (!organizationType) {
-      console.warn('⚠️ No organization type set yet, returning empty navigation items');
+      console.warn('No organization type set yet, returning empty navigation items');
       return [];
     }
     
@@ -102,20 +130,25 @@ export class OrganizationLayout implements OnInit, OnDestroy {
     
     // Si estamos en una ruta de senior citizen, agregar las opciones del senior citizen al sidenav
     const seniorCitizenId = this.getSeniorCitizenIdFromRoute();
-    if (seniorCitizenId && userId) {
-      const basePath = `/organization/${userId}/senior-citizens/${seniorCitizenId}`;
-      const seniorCitizenNavItems: { link: string; icon: string; label: string; organizationTypes: ('clinica' | 'resident')[] }[] = [];
+    const organizationId = this.currentOrganizationId();
+    const currentUserId = this.currentUserIdSignal();
+    if (seniorCitizenId && organizationId) {
+      // Incluir userId en la ruta si está presente: /organization/2/5/senior-citizens/1/profile
+      const basePath = currentUserId 
+        ? `/organization/${organizationId}/${currentUserId}/senior-citizens/${seniorCitizenId}`
+        : `/organization/${organizationId}/senior-citizens/${seniorCitizenId}`;
+      const seniorCitizenNavItems: { link: string; icon: string; label: string; organizationTypes: ('clinic' | 'resident')[] }[] = [];
       
       // Todos los usuarios pueden ver el perfil del senior citizen
       seniorCitizenNavItems.push(
-        { link: `${basePath}/profile`, icon: 'person', label: 'navigation.seniorCitizenProfile', organizationTypes: ['clinica', 'resident'] }
+        { link: `${basePath}/profile`, icon: 'person', label: 'navigation.seniorCitizenProfile', organizationTypes: ['clinic', 'resident'] }
       );
       
       // Doctors and caregivers can see statistics and alerts when viewing a senior citizen
       if (role === 'caregiver' || role === 'doctor') {
         seniorCitizenNavItems.push(
-          { link: `${basePath}/alerts`, icon: 'notifications', label: 'navigation.alerts', organizationTypes: ['clinica', 'resident'] },
-          { link: `${basePath}/statistics`, icon: 'bar_chart', label: 'navigation.statistics', organizationTypes: ['clinica', 'resident'] }
+          { link: `${basePath}/alerts`, icon: 'notifications', label: 'navigation.alerts', organizationTypes: ['clinic', 'resident'] },
+          { link: `${basePath}/statistics`, icon: 'bar_chart', label: 'navigation.statistics', organizationTypes: ['clinic', 'resident'] }
         );
       }
       
@@ -161,6 +194,7 @@ export class OrganizationLayout implements OnInit, OnDestroy {
   private organizationStore = inject(OrganizationStore);
   private route = inject(ActivatedRoute);
   private cdr = inject(ChangeDetectorRef);
+  private injector = inject(Injector);
 
   constructor(
     private timeApiService: TimeApiService,
@@ -168,53 +202,147 @@ export class OrganizationLayout implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.paramMapSubscription = this.route.paramMap.subscribe(params => {
-      const userIdStr = params.get('id');
-      if (userIdStr) {
-        const userId = parseInt(userIdStr, 10);
-        this.currentUserId = userId;
-        this.currentUserIdSignal.set(userId);
-        this.organizationStore.loadOrganizationData(userId);
+    // Watch for organization type changes using effect
+    // Must use runInInjectionContext because effect() requires an injection context
+    runInInjectionContext(this.injector, () => {
+      effect(() => {
+        const org = this.organizationStore.currentOrganization();
+        if (org) {
+          console.log(`Organization loaded: organizationId=${org.id}, organizationType="${org.type}", name="${org.name}"`);
+          console.log(`Navigation items for organization type "${org.type}":`, this.filteredNavigationItems().map(item => item.label));
+          console.log(`Current organizationType computed signal: "${this.organizationType()}"`);
+        } else {
+          console.warn(`Organization not loaded yet or is null`);
+        }
+      });
+      
+      // Watch for role changes from the store
+      effect(() => {
         const role = this.organizationStore.getCurrentUserRole();
-        this.userRole = role;
-        this.userRoleSignal.set(role);
+        const organizationId = this.currentOrganizationId();
+        const userId = this.currentUserIdSignal();
+        const currentUserRole = this.userRoleSignal();
         
-        // Use effect to watch organization changes and update type
-        // Check organization type periodically or use a computed
-        const checkOrgType = () => {
-          const orgType = this.organizationStore.getCurrentOrganizationType();
+        if (role && role !== currentUserRole) {
+          this.userRole = role;
+          this.userRoleSignal.set(role);
+          console.log(`Role updated in layout: "${role}"`);
+          
+          // Si tenemos organizationId y userId pero no hay userRole en la URL, actualizar la URL
+          if (organizationId && userId && !this.route.snapshot.paramMap.get('userRole')) {
+            const currentUrl = this.router.url;
+            // Construir la nueva URL con el formato correcto: /organization/{organizationId}/{userRole}/{userId}
+            const urlParts = currentUrl.split('/');
+            const orgIndex = urlParts.indexOf('organization');
+            if (orgIndex >= 0 && urlParts.length > orgIndex + 2) {
+              // Reemplazar la parte de la URL que contiene organizationId/userId con organizationId/userRole/userId
+              const newUrlParts = [...urlParts];
+              newUrlParts.splice(orgIndex + 2, 0, role);
+              const newUrl = newUrlParts.join('/');
+              // Solo actualizar si la URL cambió
+              if (newUrl !== currentUrl) {
+                console.log(`Updating URL to include userRole: ${newUrl}`);
+                this.router.navigateByUrl(newUrl, { replaceUrl: true });
+              }
+            }
+          }
+        }
+      });
+    });
+
+    // Leer organizationId, userRole y userId de los parámetros de la ruta (ej: /organization/2/admin/5)
+    this.paramMapSubscription = this.route.paramMap.subscribe(params => {
+      const organizationIdStr = params.get('organizationId');
+      
+      if (organizationIdStr) {
+        const organizationId = parseInt(organizationIdStr, 10);
+        this.currentOrganizationIdSignal.set(organizationId);
+        
+        // Leer userRole y userId de los parámetros de la ruta (ej: /organization/2/admin/5)
+        const userRoleStr = params.get('userRole');
+        const userIdStr = params.get('userId');
+        const userId = userIdStr ? parseInt(userIdStr, 10) : null;
+        
+        // Establecer el userId y userRole en los signals locales
+        this.currentUserIdSignal.set(userId);
+        if (userRoleStr) {
+          this.userRoleSignal.set(userRoleStr);
+          this.userRole = userRoleStr;
+        }
+        
+        console.log(`Loading organization data by organizationId: ${organizationId}${userRoleStr ? `, userRole: ${userRoleStr}` : ''}${userId ? `, userId: ${userId}` : ''}`);
+        
+        // Load organization data with optional userId
+        this.organizationStore.loadOrganizationDataByOrganizationId(organizationId, userId);
+        
+        // Si no se proporcionó userRole en la URL pero sí userId, esperar a que el store determine el rol
+        // y luego actualizar la URL para incluir el userRole
+        if (!userRoleStr && userId) {
+          // El rol se establecerá cuando el store lo determine (ver effect más abajo)
+          // La URL se actualizará automáticamente cuando se detecte el cambio de rol
+        } else if (!userRoleStr) {
+          // Si no hay userId, obtener el rol del store directamente
+          const role = this.organizationStore.getCurrentUserRole();
+          this.userRole = role;
+          this.userRoleSignal.set(role);
+        }
+        
+        // Wait for organization to load before redirecting
+        let attempts = 0;
+        const maxAttempts = 25; // 5 seconds max (25 * 200ms)
+        const checkOrgAndRedirect = () => {
+          attempts++;
+          const orgType = this.organizationType();
+          const org = this.organizationStore.currentOrganization();
+          const error = this.error();
+          const isLoading = this.isLoading();
+          
+          console.log(`[CheckRedirect] Attempt ${attempts}/${maxAttempts} - organizationType="${orgType}", organization=${org ? `id=${org.id}, type="${org.type}"` : 'null'}, isLoading=${isLoading}, error=${error || 'none'}`);
+          
+          // Stop if there's a critical error (solo errores críticos como fallo al cargar la organización)
+          // Los errores de listas (senior citizens, doctors, caregivers) no bloquean el layout
+          // porque ahora se manejan con signals específicos que los componentes muestran localmente
+          if (error && !isLoading) {
+            // Solo bloquear si es un error crítico (fallo al cargar la organización)
+            // Los errores de listas ya no se establecen en errorSignal, así que esto solo
+            // debería capturar errores críticos
+            const isCriticalError = error.includes('Failed to load organization');
+            
+            if (isCriticalError) {
+              console.error(`[CheckRedirect] Critical error detected: ${error}. Stopping redirect attempts.`);
+              return;
+            } else {
+              // Si hay un error pero no es crítico, continuar (puede ser un error de lista que se maneja localmente)
+              console.log(`[CheckRedirect] Non-critical error detected: ${error}. Continuing redirect.`);
+            }
+          }
+          
+          // Stop if we've exceeded max attempts
+          if (attempts >= maxAttempts) {
+            console.error(`[CheckRedirect] Max attempts (${maxAttempts}) reached. Stopping redirect attempts.`);
+            return;
+          }
+          
           if (orgType) {
-            this.organizationTypeSignal.set(orgType);
-            console.log(`Layout: userId=${userId}, role=${this.userRole}, organizationId=${this.organizationStore.getCurrentOrganizationId()}, organizationType=${orgType}`);
-            console.log(`Navigation items for organization type "${orgType}":`, this.filteredNavigationItems().map(item => item.label));
+            const childRoute = this.route.firstChild;
+            if (!childRoute || childRoute.snapshot.url.length === 0) {
+              console.log(`[CheckRedirect] No child route, redirecting...`);
+              this.redirectBasedOnOrganizationType(organizationId);
+            } else {
+              console.log(`[CheckRedirect] Child route exists: ${childRoute.snapshot.url.map(s => s.path).join('/')}`);
+            }
+          } else if (!isLoading) {
+            // If not loading and no organization type, wait a bit more
+            console.warn(`[CheckRedirect] No organization type yet, waiting... (attempt ${attempts}/${maxAttempts})`);
+            setTimeout(checkOrgAndRedirect, 200);
+          } else {
+            console.log(`⏳ [CheckRedirect] Still loading, waiting... (attempt ${attempts}/${maxAttempts})`);
+            setTimeout(checkOrgAndRedirect, 200);
           }
         };
         
-        // Check immediately
-        checkOrgType();
-        
-        // Check periodically (every 500ms) until we have the type
-        const checkInterval = setInterval(() => {
-          const orgType = this.organizationStore.getCurrentOrganizationType();
-          if (orgType) {
-            this.organizationTypeSignal.set(orgType);
-            clearInterval(checkInterval);
-          }
-        }, 500);
-        
-        // Clean up interval on destroy
-        if (this.userContextSubscription) {
-          this.userContextSubscription.unsubscribe();
-        }
-        this.userContextSubscription = new Subscription(() => clearInterval(checkInterval));
-        
-        const childRoute = this.route.firstChild;
-        if (!childRoute || childRoute.snapshot.url.length === 0) {
-          // Wait a bit for organization to load before redirecting
-          setTimeout(() => {
-            this.redirectBasedOnOrganizationType(userId);
-          }, 100);
-        }
+        // Initial check after a short delay to allow data to load
+        setTimeout(checkOrgAndRedirect, 100);
       }
     });
     this.timeSubscription = interval(1000).subscribe(() => {
@@ -230,14 +358,14 @@ export class OrganizationLayout implements OnInit, OnDestroy {
            .subscribe((event: NavigationEnd) => {
              this.currentRouteSignal.set(event.url);
              
-             const organizationType = this.organizationTypeSignal();
-             const userId = this.currentUserIdSignal();
-             if (userId && organizationType) {
+             const organizationType = this.organizationType();
+             const organizationId = this.currentOrganizationId();
+             if (organizationId && organizationType) {
                const currentUrl = event.url;
                const isValidRoute = this.isValidRouteForOrganizationType(currentUrl, organizationType);
                
                if (!isValidRoute) {
-                 this.redirectBasedOnOrganizationType(userId);
+                 this.redirectBasedOnOrganizationType(organizationId);
                  return;
                }
              }
@@ -259,9 +387,6 @@ export class OrganizationLayout implements OnInit, OnDestroy {
     }
     if (this.routerSubscription) {
       this.routerSubscription.unsubscribe();
-    }
-    if (this.userContextSubscription) {
-      this.userContextSubscription.unsubscribe();
     }
     if (this.paramMapSubscription) {
       this.paramMapSubscription.unsubscribe();
@@ -318,15 +443,16 @@ export class OrganizationLayout implements OnInit, OnDestroy {
   /**
    * Verifica si la ruta actual es válida para el tipo de organización
    */
-  private isValidRouteForOrganizationType(url: string, organizationType: 'clinica' | 'resident'): boolean {
+  private isValidRouteForOrganizationType(url: string, organizationType: 'clinic' | 'resident'): boolean {
     // Rutas permitidas por tipo de organización
-    const organizationTypeRoutes: Record<'clinica' | 'resident', string[]> = {
-      'clinica': ['doctors', 'senior-citizens', 'support'],
+    const organizationTypeRoutes: Record<'clinic' | 'resident', string[]> = {
+      'clinic': ['doctors', 'senior-citizens', 'support'],
       'resident': ['caregivers', 'senior-citizens', 'support']
     };
     
     const allowedRoutes = organizationTypeRoutes[organizationType] || [];
     
+    // Match: /organization/{organizationId} or /organization/{organizationId}/
     const baseRouteMatch = url.match(/^\/organization\/(\d+)\/?$/);
     if (baseRouteMatch) {
       return false;
@@ -337,26 +463,32 @@ export class OrganizationLayout implements OnInit, OnDestroy {
 
   /**
    * Redirige según el tipo de organización al llegar a la ruta base.
-   * clinica → /doctors
+   * clinic → /doctors
    * resident → /caregivers
    * También considera el rol del usuario para doctors y caregivers
    */
-  private redirectBasedOnOrganizationType(userId: number): void {
-    const organizationType = this.organizationTypeSignal();
+  private redirectBasedOnOrganizationType(organizationId: number): void {
+    const organizationType = this.organizationType();
     const role = this.organizationStore.getCurrentUserRole();
-    let redirectPath = '/doctors';
+    
+    console.log(`[Redirect] organizationId=${organizationId}, organizationType="${organizationType}", role="${role}"`);
+    
+    let redirectPath = '/doctors'; // Default
     
     if (organizationType === 'resident') {
       // Para residencias, redirigir a caregivers
       redirectPath = '/caregivers';
-    } else if (organizationType === 'clinica') {
+      console.log(`[Redirect] Organization type is 'resident', redirecting to /caregivers`);
+    } else if (organizationType === 'clinic') {
       // Para clínicas, redirigir a doctors
       redirectPath = '/doctors';
+      console.log(`[Redirect] Organization type is 'clinic', redirecting to /doctors`);
     } else {
       // Si no hay tipo de organización, usar el rol como fallback
+      console.warn(`[Redirect] No organization type found, using role fallback: "${role}"`);
       if (role === 'admin-casa-reposo' || role === 'caregiver') {
         redirectPath = '/caregivers';
-      } else if (role === 'admin-clinica' || role === 'doctor') {
+      } else if (role === 'admin-clinic' || role === 'doctor') {
         redirectPath = '/doctors';
       }
     }
@@ -364,9 +496,16 @@ export class OrganizationLayout implements OnInit, OnDestroy {
     // Para doctors y caregivers, siempre redirigir a senior-citizens
     if (role === 'doctor' || role === 'caregiver') {
       redirectPath = '/senior-citizens';
+      console.log(`[Redirect] User role is '${role}', redirecting to /senior-citizens`);
     }
     
-    const fullPath = `/organization/${userId}${redirectPath}`;
+    // Incluir userRole y userId en la ruta si están presentes
+    const userId = this.currentUserIdSignal();
+    const userRole = this.userRoleSignal();
+    const fullPath = (userId && userRole)
+      ? `/organization/${organizationId}/${userRole}/${userId}${redirectPath}`
+      : `/organization/${organizationId}${redirectPath}`;
+    console.log(`🚀 [Redirect] Navigating to: ${fullPath}`);
     this.router.navigate([fullPath], { replaceUrl: true });
   }
 }

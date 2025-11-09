@@ -4,12 +4,16 @@ import { DoctorsApiEndpoint } from './doctor-api-endpoint';
 import { CaregiversApiEndpoint } from './caregiver-api-endpoint';
 import { SeniorCitizensApiEndpoint } from './senior-citizen-api-endpoint';
 import { OrganizationsApiEndpoint } from './organization-api-endpoint';
+import { AdminsApiEndpoint } from './admin-api-endpoint';
+import { DoctorAssignmentApiEndpoint } from './doctor-assignment-api-endpoint';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Doctor } from '../domain/model/doctor.entity';
 import { Caregiver } from '../domain/model/caregiver.entity';
 import { SeniorCitizen } from '../domain/model/senior-citizen.entity';
 import { Organization } from '../domain/model/organization.entity';
+import { Admin } from '../domain/model/admin.entity';
 
 /**
  * API service for managing organization-related operations (for doctors, caregivers, senior citizens, etc.)
@@ -23,6 +27,8 @@ export class OrganizationApi extends BaseApi {
   private readonly caregiversEndpoint: CaregiversApiEndpoint;
   private readonly seniorCitizensEndpoint: SeniorCitizensApiEndpoint;
   private readonly organizationsEndpoint: OrganizationsApiEndpoint;
+  private readonly adminsEndpoint: AdminsApiEndpoint;
+  private readonly doctorAssignmentEndpoint: DoctorAssignmentApiEndpoint;
 
   constructor(
     http: HttpClient) {
@@ -31,6 +37,8 @@ export class OrganizationApi extends BaseApi {
     this.caregiversEndpoint = new CaregiversApiEndpoint(http);
     this.seniorCitizensEndpoint = new SeniorCitizensApiEndpoint(http);
     this.organizationsEndpoint = new OrganizationsApiEndpoint(http);
+    this.adminsEndpoint = new AdminsApiEndpoint(http);
+    this.doctorAssignmentEndpoint = new DoctorAssignmentApiEndpoint(http);
   }
 
   /**
@@ -220,6 +228,106 @@ export class OrganizationApi extends BaseApi {
     return this.organizationsEndpoint.getById(id);
   }
 
-  // Note: Assignment methods removed - assignments are now part of the entities themselves (assignedSeniorIds for doctors/caregivers, assignedDoctorId/assignedCaregiverId for senior citizens - single assignment only)
-  // The backend will handle junction tables when updating Doctor/Caregiver/SeniorCitizen entities
+  /**
+   * Fetches all admins from the API.
+   * @returns An Observable emitting an array of Admin entities.
+   */
+  getAdmins(): Observable<Admin[]> {
+    return this.adminsEndpoint.getAll();
+  }
+
+  /**
+   * Fetches an admin by its ID from the API.
+   * @param id - The ID of the admin to fetch.
+   * @returns An Observable emitting the Admin entity or null if not found.
+   */
+  getAdminById(id: number): Observable<Admin | null> {
+    return this.adminsEndpoint.getById(id);
+  }
+
+  /**
+   * Fetches admins by organization ID from the API.
+   * @param organizationId - The organization ID to filter admins.
+   * @returns An Observable emitting an array of Admin entities.
+   */
+  getAdminsByOrganization(organizationId: number): Observable<Admin[]> {
+    return this.adminsEndpoint.getByOrganizationId(organizationId);
+  }
+
+  /**
+   * Fetches an admin by userId from the API.
+   * @param userId - The user ID to search for.
+   * @returns An Observable emitting the Admin entity or null if not found.
+   */
+  getAdminByUserId(userId: string): Observable<Admin | null> {
+    return this.adminsEndpoint.getByUserId(userId);
+  }
+
+  /**
+   * Fetches an admin by userId and organizationId from the API.
+   * This ensures the admin belongs to the specified organization.
+   * @param userId - The user ID to search for.
+   * @param organizationId - The organization ID to validate.
+   * @returns An Observable emitting the Admin entity or null if not found.
+   */
+  getAdminByUserIdAndOrganizationId(userId: number, organizationId: number): Observable<Admin | null> {
+    return this.adminsEndpoint.getByUserIdAndOrganizationId(userId, organizationId).pipe(
+      map((admin: Admin | null) => admin || null)
+    );
+  }
+
+  /**
+   * Fetches a doctor by userId from the API.
+   * @param userId - The user ID to search for.
+   * @returns An Observable emitting the Doctor entity or null if not found.
+   */
+  getDoctorByUserId(userId: number): Observable<Doctor | null> {
+    return this.doctorsEndpoint.getByUserId(userId).pipe(
+      map((doctor: Doctor) => doctor || null)
+    );
+  }
+
+  /**
+   * Fetches a doctor by userId and organizationId from the API.
+   * This ensures the doctor belongs to the specified organization.
+   * @param userId - The user ID to search for.
+   * @param organizationId - The organization ID to validate.
+   * @returns An Observable emitting the Doctor entity or null if not found.
+   */
+  getDoctorByUserIdAndOrganizationId(userId: number, organizationId: number): Observable<Doctor | null> {
+    return this.doctorsEndpoint.getByUserIdAndOrganizationId(userId, organizationId).pipe(
+      map((doctor: Doctor | null) => doctor || null)
+    );
+  }
+
+  /**
+   * Assigns a senior citizen to a doctor using the doctor-assignments endpoint.
+   * This creates the entry in the doctor_assignments table.
+   * @param doctorId - The doctor ID
+   * @param seniorCitizenId - The senior citizen ID
+   * @returns An Observable emitting the updated SeniorCitizen entity
+   */
+  assignSeniorCitizenToDoctor(doctorId: number, seniorCitizenId: number): Observable<SeniorCitizen> {
+    return this.doctorAssignmentEndpoint.assignSeniorCitizenToDoctor(doctorId, seniorCitizenId);
+  }
+
+  /**
+   * Unassigns a senior citizen from a doctor using the doctor-assignments endpoint.
+   * This removes the entry from the doctor_assignments table.
+   * @param doctorId - The doctor ID
+   * @param seniorCitizenId - The senior citizen ID
+   * @returns An Observable that completes when the unassignment is successful
+   */
+  unassignSeniorCitizenFromDoctor(doctorId: number, seniorCitizenId: number): Observable<void> {
+    return this.doctorAssignmentEndpoint.unassignSeniorCitizenFromDoctor(doctorId, seniorCitizenId);
+  }
+
+  /**
+   * Gets all senior citizens assigned to a doctor.
+   * @param doctorId - The doctor ID
+   * @returns An Observable emitting an array of SeniorCitizen entities
+   */
+  getSeniorCitizensByDoctorId(doctorId: number): Observable<SeniorCitizen[]> {
+    return this.doctorAssignmentEndpoint.getSeniorCitizensByDoctorId(doctorId);
+  }
 }

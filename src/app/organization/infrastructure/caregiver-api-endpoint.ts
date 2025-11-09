@@ -23,28 +23,20 @@ export class CaregiversApiEndpoint extends
   }
 
   /**
-   * Obtiene caregivers por organizationId (org_id en BD)
-   * Usa org_id como parámetro de consulta para coincidir con el esquema de BD
+   * Gets caregivers by organizationId
+   * Uses path variable following backend endpoint pattern: /organization/{organizationId}
    */
   getByOrganizationId(organizationId: number) {
-    const url = `${this.endpointUrl}?org_id=${organizationId}`;
-    console.log(`🌐 [API] Requesting caregivers from: ${url} (org_id=${organizationId})`);
-    return this.http.get<CaregiversResponse | CaregiverResource[]>(url)
+    const url = `${this.endpointUrl}/organization/${organizationId}`;
+    console.log(`[API] Requesting caregivers from: ${url} (organizationId=${organizationId})`);
+    return this.http.get<CaregiverResource[]>(url)
       .pipe(
         map(response => {
-          console.log(`📦 [API] Raw response from server:`, response);
-          // Manejar tanto arrays directos (JSON Server) como objetos con campo caregivers
-          if (Array.isArray(response)) {
-            console.log(`📦 [API] Response is an array, mapping directly`);
-            const entities = response.map(resource => this.assembler.toEntityFromResource(resource));
-            console.log(`🔄 [API] Transformed entities:`, entities);
-            return entities;
-          } else {
-            console.log(`📦 [API] Response is an object, using toEntitiesFromResponse`);
-            const entities = this.assembler.toEntitiesFromResponse(response as CaregiversResponse);
-            console.log(`🔄 [API] Transformed entities:`, entities);
-            return entities;
-          }
+          console.log(`[API] Raw response from server:`, response);
+          // Backend returns array directly
+          const entities = response.map(resource => this.assembler.toEntityFromResource(resource));
+          console.log(`[API] Transformed entities:`, entities);
+          return entities;
         })
       );
   }

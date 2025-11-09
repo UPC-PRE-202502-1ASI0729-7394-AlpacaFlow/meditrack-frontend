@@ -6,20 +6,20 @@ import { BaseEntity } from '../../../shared/infrastructure/base-entity';
 export class Admin implements BaseEntity {
     private _id: number;
     private _organizationId: number;
-    private _userId: string;
+    private _userId: number | null = null;
     private _firstName: string;
     private _lastName: string;
 
     constructor(admin: {
         id?: number;
         organizationId: number;
-        userId: string;
+        userId: number | null;
         firstName?: string;
         lastName?: string;
     }) {
         this._id = admin.id ?? 0;
         this._organizationId = admin.organizationId;
-        this._userId = admin.userId;
+        this._userId = admin.userId ?? null;
         this._firstName = admin.firstName ?? '';
         this._lastName = admin.lastName ?? '';
     }
@@ -40,11 +40,11 @@ export class Admin implements BaseEntity {
         this._organizationId = value;
     }
 
-    get userId(): string {
+    get userId(): number | null {
         return this._userId;
     }
 
-    set userId(value: string) {
+    set userId(value: number | null) {
         this._userId = value;
     }
 

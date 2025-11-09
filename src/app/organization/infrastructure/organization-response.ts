@@ -2,13 +2,12 @@ import { BaseResource, BaseResponse } from '../../shared/infrastructure/base-res
 
 /**
  * Represents the API resource/DTO for an organization
- * This interface matches the database schema (snake_case) for direct mapping from backend
- * BD: org_id (PK), name, type
+ * This interface matches the backend JSON format (camelCase) following learning-center-platform pattern
  */
 export interface OrganizationResource extends BaseResource {
-    // id is inherited from BaseResource (maps to org_id in BD)
-    name: string; // BD: name
-    type: 'clinica' | 'resident'; // BD: type
+    // id is inherited from BaseResource
+    name: string;
+    type: 'clinic' | 'resident'; // Backend and frontend both use 'clinic'
 }
 
 /**

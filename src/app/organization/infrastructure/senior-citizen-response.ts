@@ -2,22 +2,24 @@ import { BaseResource, BaseResponse } from '../../shared/infrastructure/base-res
 
 /**
  * Represents the API resource/DTO for a senior citizen
- * This interface matches the database schema (snake_case) for direct mapping from backend
+ * This interface matches the backend JSON format (camelCase) following learning-center-platform pattern
  */
 export interface SeniorCitizenResource extends BaseResource {
-    org_id: number; // Maps to organizationId in entity (BD: org_id)
-    first_name: string; // Maps to firstName in entity (BD: first_name)
-    last_name: string; // Maps to lastName in entity (BD: last_name)
-    birth_date: string; // ISO date string from API (BD: birth_date)
-    age?: number; // Computed from birth_date (not in BD but might be returned)
-    gender: string; // BD: gender
-    weight: number; // BD: weight
-    dni: string; // BD: dni
-    height: number; // BD: height
-    profile_image: string; // Maps to imageUrl in entity (BD: profile_image)
-    device_id: string; // Maps to deviceIot in entity (BD: device_id, Unique)
-    assignedDoctorId?: number | null; // Not in BD directly, comes from Doctor_assignments table (single doctor only)
-    assignedCaregiverId?: number | null; // Not in BD directly, comes from Caregiver_assignments table (single caregiver only)
+    organizationId: number;
+    firstName: string;
+    lastName: string;
+    birthDate: string | Date;
+    age?: number;
+    gender: string;
+    weight: number;
+    dni: string;
+    height: number;
+    imageUrl: string;
+    deviceId: number;
+    assignedDoctorId?: number | null;
+    assignedCaregiverId?: number | null;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
     signalVitals?: {
         bloodPressure?: number[][];
         heartRate?: number[];

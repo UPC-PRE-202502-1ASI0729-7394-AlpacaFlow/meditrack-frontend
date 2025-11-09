@@ -26,20 +26,26 @@ export class CaregiverItem {
   ) {}
 
   /**
-   * Obtiene el userId de la ruta padre (organization/:id)
+   * Obtiene organizationId, userRole y userId de la ruta padre
    */
-  private getUserIdFromRoute(): number | null {
-    // Intentar obtener el userId de la ruta padre
+  private getRouteParams(): { organizationId: number | null; userRole: string | null; userId: number | null } {
     let currentRoute: ActivatedRoute | null = this.route;
     while (currentRoute) {
       const params = currentRoute.snapshot.paramMap;
-      const userId = params.get('id');
-      if (userId) {
-        return parseInt(userId, 10);
+      const organizationId = params.get('organizationId');
+      const userRole = params.get('userRole');
+      const userId = params.get('userId');
+      
+      if (organizationId) {
+        return {
+          organizationId: parseInt(organizationId, 10),
+          userRole: userRole,
+          userId: userId ? parseInt(userId, 10) : null
+        };
       }
       currentRoute = currentRoute.parent;
     }
-    return null;
+    return { organizationId: null, userRole: null, userId: null };
   }
 
   onEdit(event: Event) {
@@ -53,20 +59,28 @@ export class CaregiverItem {
   }
 
   onCardClick() {
-    const userId = this.getUserIdFromRoute();
-    if (userId) {
-      this.router.navigate(['/organization', userId, 'caregivers', this.caregiver.id]);
+    const { organizationId, userRole, userId } = this.getRouteParams();
+    if (organizationId) {
+      if (userRole && userId) {
+        this.router.navigate(['/organization', organizationId, userRole, userId, 'caregivers', this.caregiver.id]);
+      } else {
+        this.router.navigate(['/organization', organizationId, 'caregivers', this.caregiver.id]);
+      }
     } else {
-      console.error('❌ CaregiverItem: Could not find userId in route');
+      console.error('CaregiverItem: Could not find organizationId in route');
     }
   }
 
   onCardDoubleClick() {
-    const userId = this.getUserIdFromRoute();
-    if (userId) {
-      this.router.navigate(['/organization', userId, 'caregivers', this.caregiver.id]);
+    const { organizationId, userRole, userId } = this.getRouteParams();
+    if (organizationId) {
+      if (userRole && userId) {
+        this.router.navigate(['/organization', organizationId, userRole, userId, 'caregivers', this.caregiver.id]);
+      } else {
+        this.router.navigate(['/organization', organizationId, 'caregivers', this.caregiver.id]);
+      }
     } else {
-      console.error('❌ CaregiverItem: Could not find userId in route');
+      console.error('CaregiverItem: Could not find organizationId in route');
     }
   }
 }

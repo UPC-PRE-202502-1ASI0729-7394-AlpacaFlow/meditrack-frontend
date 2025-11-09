@@ -24,28 +24,57 @@ export class DoctorsApiEndpoint extends
   }
 
   /**
-   * Obtiene doctores por organizationId (org_id en BD)
-   * Usa org_id como parámetro de consulta para coincidir con el esquema de BD
+   * Gets doctors by organizationId
+   * Uses path variable following backend endpoint pattern: /organization/{organizationId}
    */
   getByOrganizationId(organizationId: number) {
-    const url = `${this.endpointUrl}?org_id=${organizationId}`;
-    console.log(`🌐 [API] Requesting doctors from: ${url} (org_id=${organizationId})`);
-    return this.http.get<DoctorsResponse | DoctorResource[]>(url)
+    const url = `${this.endpointUrl}/organization/${organizationId}`;
+    console.log(`[API] Requesting doctors from: ${url} (organizationId=${organizationId})`);
+    return this.http.get<DoctorResource[]>(url)
       .pipe(
         map(response => {
-          console.log(`📦 [API] Raw response from server:`, response);
-          // Manejar tanto arrays directos (JSON Server) como objetos con campo doctors
-          if (Array.isArray(response)) {
-            console.log(`📦 [API] Response is an array, mapping directly`);
-            const entities = response.map(resource => this.assembler.toEntityFromResource(resource));
-            console.log(`🔄 [API] Transformed entities:`, entities);
-            return entities;
-          } else {
-            console.log(`📦 [API] Response is an object, using toEntitiesFromResponse`);
-            const entities = this.assembler.toEntitiesFromResponse(response as DoctorsResponse);
-            console.log(`🔄 [API] Transformed entities:`, entities);
-            return entities;
-          }
+          console.log(`[API] Raw response from server:`, response);
+          // Backend returns array directly
+          const entities = response.map(resource => this.assembler.toEntityFromResource(resource));
+          console.log(`[API] Transformed entities:`, entities);
+          return entities;
+        })
+      );
+  }
+
+  /**
+   * Gets a doctor by userId
+   * Uses path variable following backend endpoint pattern: /user/{userId}
+   */
+  getByUserId(userId: number) {
+    const url = `${this.endpointUrl}/user/${userId}`;
+    console.log(`[API] Requesting doctor from: ${url} (userId=${userId})`);
+    return this.http.get<DoctorResource>(url)
+      .pipe(
+        map(response => {
+          console.log(`[API] Raw response from server:`, response);
+          const entity = this.assembler.toEntityFromResource(response);
+          console.log(`[API] Transformed entity:`, entity);
+          return entity;
+        })
+      );
+  }
+
+  /**
+   * Gets a doctor by userId and organizationId
+   * This ensures the doctor belongs to the specified organization
+   * Uses path variable following backend endpoint pattern: /user/{userId}/organization/{organizationId}
+   */
+  getByUserIdAndOrganizationId(userId: number, organizationId: number) {
+    const url = `${this.endpointUrl}/user/${userId}/organization/${organizationId}`;
+    console.log(`[API] Requesting doctor from: ${url} (userId=${userId}, organizationId=${organizationId})`);
+    return this.http.get<DoctorResource>(url)
+      .pipe(
+        map(response => {
+          console.log(`[API] Raw response from server:`, response);
+          const entity = this.assembler.toEntityFromResource(response);
+          console.log(`[API] Transformed entity:`, entity);
+          return entity;
         })
       );
   }

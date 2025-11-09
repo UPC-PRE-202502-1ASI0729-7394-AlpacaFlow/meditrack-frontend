@@ -14,7 +14,7 @@ export class SeniorCitizen implements BaseEntity {
     private _dni: string;
     private _height: number;
     private _imageUrl: string;
-    private _deviceIot: string;
+    private _deviceId: number;
     private _assignedDoctorId: number | null;
     private _assignedCaregiverId: number | null;
     private _signalVitals?: SignalVitals;
@@ -33,7 +33,7 @@ export class SeniorCitizen implements BaseEntity {
         dni?: string,
         height?: number,
         imageUrl?: string,
-        deviceIot?: string,
+        deviceId?: number,
         assignedDoctorId?: number | null,
         assignedCaregiverId?: number | null,
         signalVitals?: any,
@@ -63,7 +63,7 @@ export class SeniorCitizen implements BaseEntity {
         this._dni = seniorCitizen.dni ?? '';
         this._height = seniorCitizen.height ?? 0;
         this._imageUrl = seniorCitizen.imageUrl ?? '';
-        this._deviceIot = seniorCitizen.deviceIot ?? '';
+        this._deviceId = seniorCitizen.deviceId ?? 0;
         this._assignedDoctorId = seniorCitizen.assignedDoctorId ?? null;
         this._assignedCaregiverId = seniorCitizen.assignedCaregiverId ?? null;
         this._signalVitals = seniorCitizen.signalVitals ? new SignalVitals(seniorCitizen.signalVitals) : undefined;
@@ -77,11 +77,11 @@ export class SeniorCitizen implements BaseEntity {
         this._organizationId = value;
     }
 
-    get deviceIot(): string {
-        return this._deviceIot;
+    get deviceId(): number {
+        return this._deviceId;
     }
-    set deviceIot(value: string) {
-        this._deviceIot = value;
+    set deviceId(value: number) {
+        this._deviceId = value;
     }
 
     get id(): number {

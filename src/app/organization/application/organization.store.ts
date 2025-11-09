@@ -1,10 +1,11 @@
 import { computed, Injectable, Signal, signal } from '@angular/core';
-import { retry, filter, take } from 'rxjs';
+import { retry, take } from 'rxjs';
 
 import { Doctor } from '../domain/model/doctor.entity';
 import { Caregiver } from '../domain/model/caregiver.entity';
 import { SeniorCitizen } from '../domain/model/senior-citizen.entity';
 import { Organization } from '../domain/model/organization.entity';
+import { Admin } from '../domain/model/admin.entity';
 import { OrganizationApi } from '../infrastructure/organization-api';
 
 /**
@@ -15,212 +16,323 @@ import { OrganizationApi } from '../infrastructure/organization-api';
 })
 export class OrganizationStore {
 
-  // Tabla Users: id, email, role
-  private readonly USERS = [
-    { id: 1, email: "admin1@example.com", role: "admin" },
-    { id: 2, email: "admin2@example.com", role: "admin" },
-    { id: 3, email: "doctor1@example.com", role: "doctor" },
-    { id: 4, email: "caregiver1@example.com", role: "caregiver" }
-  ];
-
-  // Tabla Organizations: id, name, type
-  private readonly ORGANIZATIONS = [
-    { id: 1, name: "Clínica Ortega", type: "clinica" as const },
-    { id: 2, name: "Casa de Reposo San Juan", type: "resident" as const }
-  ];
-
-  // Tabla Admins: id, organizationId, userId, firstName, lastName
-  private readonly ADMINS = [
-    { id: 1, organizationId: 1, userId: "1", firstName: "María", lastName: "González" },
-    { id: 2, organizationId: 2, userId: "2", firstName: "Juan", lastName: "Pérez" }
-  ];
-
-  // Tabla Doctors: id, organizationId, userId, firstName, lastName, ...
-  // Se carga desde la API, pero para simulación de entityId:
-  // userId: 3 -> doctorId: 1 (se obtendrá de la API)
-  
-  // Tabla Caregivers: id, organizationId, userId, firstName, lastName, ...
-  // Se carga desde la API, pero para simulación de entityId:
-  // userId: 4 -> caregiverId: 1 (se obtendrá de la API)
-
-  
-
-
-  // Doctor signals
   readonly doctorCount = computed(() => this.doctors().length);
   private readonly doctorsSignal = signal<Doctor[]>([]);
   readonly doctors = this.doctorsSignal.asReadonly();
-
-  // Selected senior citizen signal (for doctors and caregivers viewing senior citizen details)
   private readonly selectedSeniorCitizenSignal = signal<SeniorCitizen | null>(null);
   readonly selectedSeniorCitizen = this.selectedSeniorCitizenSignal.asReadonly();
-
-  // Caregiver signals
   readonly caregiverCount = computed(() => this.caregivers().length);
   private readonly caregiversSignal = signal<Caregiver[]>([]);
   readonly caregivers = this.caregiversSignal.asReadonly();
-
-  // Senior Citizen signals
   readonly seniorCitizenCount = computed(() => this.seniorCitizens().length);
   private readonly seniorCitizensSignal = signal<SeniorCitizen[]>([]);
   readonly seniorCitizens = this.seniorCitizensSignal.asReadonly();
-
-  // Filtered senior citizens based on user role (for doctors and caregivers, only show assigned senior citizens)
   readonly filteredSeniorCitizens = computed(() => {
     const role = this.getCurrentUserRole();
     const organizationId = this.getCurrentOrganizationId();
     const allSeniorCitizens = this.seniorCitizens();
-    
-    // Always filter by organizationId to ensure multi-tenant isolation
     const seniorCitizensInOrganization = organizationId > 0
       ? allSeniorCitizens.filter(sc => sc.organizationId === organizationId)
       : [];
     
-    // If user is a doctor, filter by assigned senior citizens using doctor's assignedSeniorIds
     if (role === 'doctor') {
       const doctorId = this.getCurrentUserEntityId();
       if (doctorId) {
-        // Filter by assignment AND organization (check if senior citizen is assigned to this doctor)
-        return seniorCitizensInOrganization.filter(sc => 
+        return seniorCitizensInOrganization.filter(sc =>
           sc.assignedDoctorId === doctorId && 
           sc.organizationId === organizationId
         );
       }
-      return []; // No doctorId found, return empty array
+      return [];
     }
     
-    // If user is a caregiver, filter by assigned senior citizens using caregiver's assignedSeniorIds
     if (role === 'caregiver') {
       const caregiverId = this.getCurrentUserEntityId();
       if (caregiverId) {
-        // Filter by assignment AND organization (check if senior citizen is assigned to this caregiver)
-        return seniorCitizensInOrganization.filter(sc => 
+        return seniorCitizensInOrganization.filter(sc =>
           sc.assignedCaregiverId === caregiverId && 
           sc.organizationId === organizationId
         );
       }
-      return []; // No caregiverId found, return empty array
+      return [];
     }
     
-    // For admin or other roles, show all senior citizens in the organization
     return seniorCitizensInOrganization;
   });
 
-  // Current user ID signal (userId del usuario actual)
-  // Se establece cuando se llama a loadOrganizationData(userId)
   private readonly currentUserIdSignal = signal<number | null>(null);
   readonly currentUserId = this.currentUserIdSignal.asReadonly();
   
-  // Current organization ID signal (organizationId del usuario actual)
-  // Se establece cuando se llama a loadOrganizationData(userId)
+  private readonly currentUserRoleSignal = signal<string>('');
+  readonly currentUserRole = this.currentUserRoleSignal.asReadonly();
   private readonly currentOrganizationIdSignal = signal<number | null>(null);
   readonly currentOrganizationId = this.currentOrganizationIdSignal.asReadonly();
-
-  // Current organization entity signal
   private readonly currentOrganizationSignal = signal<Organization | null>(null);
   readonly currentOrganization = this.currentOrganizationSignal.asReadonly();
+  
+  private readonly loadedSeniorCitizensForOrgId = signal<number | null>(null);
+  private readonly loadedDoctorsForOrgId = signal<number | null>(null);
+  private readonly loadedCaregiversForOrgId = signal<number | null>(null);
 
-  // Loading and error states
   private readonly loadingSignal = signal<boolean>(false);
   readonly loading = this.loadingSignal.asReadonly();
+  
   private readonly errorSignal = signal<string | null>(null);
   readonly error = this.errorSignal.asReadonly();
+  
+  private readonly seniorCitizensErrorSignal = signal<string | null>(null);
+  readonly seniorCitizensError = this.seniorCitizensErrorSignal.asReadonly();
+  
+  private readonly doctorsErrorSignal = signal<string | null>(null);
+  readonly doctorsError = this.doctorsErrorSignal.asReadonly();
+  
+  private readonly caregiversErrorSignal = signal<string | null>(null);
+  readonly caregiversError = this.caregiversErrorSignal.asReadonly();
 
   constructor(
     private organizationApi: OrganizationApi
   ) {
   }
 
-  /**
-   * Loads all data for an organization by userId.
-   * Busca el usuario por su ID y obtiene su organizationId para cargar los datos.
-   * @param userId - The user ID. Uses default if not provided.
-   */
+
   loadOrganizationData(userId?: number): void {
     if (!userId) {
       userId = 1; // Default
     }
 
-    // 1. BUSCAR USUARIO POR SU ID
-    const user = this.USERS.find(u => u.id === userId);
-    if (!user) {
-      console.error(`❌ User with id ${userId} not found`);
-      return;
-    }
+    console.log(`Searching for user with userId ${userId} in backend...`);
 
-    // 2. OBTENER organizationId SEGÚN EL ROL DEL USUARIO
-    let organizationId: number = 0;
-
-    if (user.role === 'admin') {
-      // Para admin: buscar en Admins por userId
-      const admin = this.ADMINS.find(a => a.userId === userId.toString());
-      if (admin) {
-        organizationId = admin.organizationId;
-      } else {
-        console.error(`❌ Admin with userId ${userId} not found`);
-        return;
+    this.organizationApi.getAdminByUserId(userId.toString()).pipe(take(1)).subscribe({
+      next: (admin) => {
+        if (admin) {
+          const organizationId = admin.organizationId;
+          console.log(`Found admin in backend: userId=${userId}, organizationId=${organizationId}`);
+          this.loadOrganizationDataWithId(userId, organizationId, 'admin');
+        } else {
+          console.warn(`Admin not found in backend for userId ${userId}`);
+          console.warn(`Tip: Ensure the user is registered in the backend or use loadOrganizationDataByOrganizationId(organizationId, userId)`);
+        }
+      },
+      error: (err) => {
+        console.error(`Error searching admin in backend: ${err.message}`);
+        console.warn(`Tip: Check backend connection or ensure the user is registered in the backend`);
       }
-    } else if (user.role === 'doctor') {
-      // Para doctor: buscar en Doctors (se carga desde API)
-      // Por ahora usamos un mapeo temporal, pero en producción se obtendría de la API
-      // En producción: buscar doctor por userId en la API -> obtener organizationId
-      // Por ahora asumimos que doctor con userId 3 pertenece a organizationId 1
-      organizationId = 1; // Clínica Ortega
-    } else if (user.role === 'caregiver') {
-      // Para caregiver: buscar en Caregivers (se carga desde API)
-      // Por ahora usamos un mapeo temporal
-      // En producción: buscar caregiver por userId en la API -> obtener organizationId
-      // Por ahora asumimos que caregiver con userId 4 pertenece a organizationId 2
-      organizationId = 2; // Casa de Reposo San Juan
-    }
+    });
+  }
 
-    if (organizationId === 0) {
-      console.error(`❌ Could not determine organizationId for user ${userId} with role ${user.role}`);
+
+  private tryLoadByOtherRoles(userId: number): void {
+    console.warn(`tryLoadByOtherRoles called but is deprecated. User with id ${userId} not found in backend.`);
+    console.warn(`Tip: Ensure the user is registered in the backend or use loadOrganizationDataByOrganizationId(organizationId, userId)`);
+  }
+
+  private loadOrganizationDataWithId(userId: number, organizationId: number, role: string): void {
+    this.currentUserIdSignal.set(userId);
+    this.currentOrganizationIdSignal.set(organizationId);
+    this.currentUserRoleSignal.set(role);
+    console.log(`Loading organization data (userId: ${userId}, organizationId: ${organizationId}, role: ${role})`);
+
+    this.loadOrganizationById(organizationId);
+    
+
+    setTimeout(() => {
+      const organization = this.currentOrganizationSignal();
+      if (organization) {
+        const orgType = organization.type;
+        console.log(`Loading data for organization type: ${orgType}`);
+        
+        if (orgType === 'clinic') {
+          this.loadDoctorsByOrganization(organizationId);
+          this.loadSeniorCitizensByOrganization(organizationId);
+        } else if (orgType === 'resident') {
+          // Para residencias: cargar caregivers y senior citizens
+          this.loadCaregiversByOrganization(organizationId);
+          this.loadSeniorCitizensByOrganization(organizationId);
+        } else {
+          // Si no se conoce el tipo, cargar todo (fallback)
+          console.warn(`Unknown organization type: ${orgType}, loading all data`);
+          this.loadDoctorsByOrganization(organizationId);
+          this.loadCaregiversByOrganization(organizationId);
+          this.loadSeniorCitizensByOrganization(organizationId);
+        }
+      } else {
+        // Si no se pudo cargar la organización, intentar cargar todo como fallback
+        console.warn(`Organization not loaded yet, loading all data as fallback`);
+        this.loadDoctorsByOrganization(organizationId);
+        this.loadCaregiversByOrganization(organizationId);
+        this.loadSeniorCitizensByOrganization(organizationId);
+      }
+    }, 100);
+  }
+
+  /**
+   * Loads all data for an organization by organizationId directly.
+   * This method is useful for testing when you have an organizationId from the database
+   * (e.g., from Swagger) and don't need to go through the user lookup process.
+   * 
+   * Works with:
+   * - Organizations registered in Swagger
+   * - Admins registered in Swagger (use their organizationId)
+   * - Any organizationId from the database
+   * 
+   * @param organizationId - The organization ID to load data for (from Swagger/DB).
+   * @param userId - Optional user ID. If provided, will search for admin/doctor/caregiver with this userId and set the role accordingly.
+   */
+  loadOrganizationDataByOrganizationId(organizationId: number, userId?: number | null): void {
+    if (organizationId <= 0) {
+      console.error(`Invalid organizationId: ${organizationId}`);
       return;
     }
 
-    // 3. ESTABLECER EL userId Y organizationId ACTUAL EN EL STORE
-    this.currentUserIdSignal.set(user.id);
+    console.log(`Loading organization data directly for organizationId: ${organizationId}${userId ? `, userId: ${userId}` : ''}`);
+    console.log(`📝 This works with organizations and admins registered in Swagger`);
+
+    // Set the organizationId in the store
     this.currentOrganizationIdSignal.set(organizationId);
 
-    console.log(`✅ Loading organization data for ${user.email} (userId: ${user.id}, organizationId: ${organizationId}, role: ${user.role})`);
+    // Si se proporciona userId, buscar el admin/doctor/caregiver correspondiente para establecer el rol
+    // IMPORTANTE: Usar los métodos que validan tanto userId como organizationId para evitar conflictos
+    // cuando un Admin y un Doctor tienen el mismo userId pero en diferentes organizaciones
+    if (userId) {
+      this.currentUserIdSignal.set(userId);
+      
+      // Buscar admin por userId Y organizationId (valida que pertenezca a esta organización)
+      this.organizationApi.getAdminByUserIdAndOrganizationId(userId, organizationId).pipe(take(1)).subscribe({
+        next: (admin) => {
+          if (admin) {
+            // Admin encontrado en el backend para esta organización específica
+            console.log(`Found admin in backend: userId=${userId}, organizationId=${organizationId}`);
+            this.currentUserRoleSignal.set('admin');
+            this.loadOrganizationDataWithId(userId, organizationId, 'admin');
+          } else {
+            // No es admin en esta organización, intentar buscar doctor por userId Y organizationId
+            console.log(`Admin not found for userId ${userId} in organization ${organizationId}, trying to find doctor...`);
+            this.organizationApi.getDoctorByUserIdAndOrganizationId(userId, organizationId).pipe(take(1)).subscribe({
+              next: (doctor) => {
+                if (doctor) {
+                  // Doctor encontrado en el backend para esta organización específica
+                  console.log(`Found doctor in backend: userId=${userId}, organizationId=${organizationId}`);
+                  this.currentUserRoleSignal.set('doctor');
+                  this.loadOrganizationDataWithId(userId, organizationId, 'doctor');
+                } else {
+                  // No es doctor en esta organización, intentar buscar en admins de la organización
+                  console.log(`Doctor not found for userId ${userId} in organization ${organizationId}, trying to find admin in organization...`);
+                  this.findAndSetAdminFromOrganization(organizationId, userId);
+                }
+              },
+              error: (err) => {
+                console.warn(`Error searching doctor by userId and organizationId: ${err.message}, trying to find admin in organization...`);
+                this.findAndSetAdminFromOrganization(organizationId, userId);
+              }
+            });
+          }
+        },
+        error: (err) => {
+          console.warn(`Error searching admin by userId and organizationId: ${err.message}, trying to find doctor...`);
+          // Si falla buscar admin, intentar buscar doctor
+          this.organizationApi.getDoctorByUserIdAndOrganizationId(userId, organizationId).pipe(take(1)).subscribe({
+            next: (doctor) => {
+              if (doctor) {
+                console.log(`Found doctor in backend: userId=${userId}, organizationId=${organizationId}`);
+                this.currentUserRoleSignal.set('doctor');
+                this.loadOrganizationDataWithId(userId, organizationId, 'doctor');
+              } else {
+                console.log(`Doctor not found for userId ${userId} in organization ${organizationId}, trying to find admin in organization...`);
+                this.findAndSetAdminFromOrganization(organizationId, userId);
+              }
+            },
+            error: (err2) => {
+              console.warn(`Error searching doctor by userId and organizationId: ${err2.message}, trying to find admin in organization...`);
+              this.findAndSetAdminFromOrganization(organizationId, userId);
+            }
+          });
+        }
+      });
+    } else {
+      // Si no se proporciona userId, solo cargar los datos de la organización
+      // Load all organization data from the backend
+      this.loadOrganizationById(organizationId);
+      this.loadDoctorsByOrganization(organizationId);
+      this.loadCaregiversByOrganization(organizationId);
+      this.loadSeniorCitizensByOrganization(organizationId);
+    }
+  }
 
-    // 4. CARGAR TODOS LOS DATOS DE LA ORGANIZACIÓN usando organizationId
-    // Note: Assignments are included in the entities (assignedSeniorIds for doctors/caregivers, assignedDoctorId/assignedCaregiverId for senior citizens - single assignment only)
-    this.loadOrganizationById(organizationId);
-    this.loadDoctorsByOrganization(organizationId);
-    this.loadCaregiversByOrganization(organizationId);
-    this.loadSeniorCitizensByOrganization(organizationId);
+  /**
+   * Helper method to find an admin from an organization and set the role.
+   * If userId is provided, tries to find that specific admin. Otherwise, uses the first admin found.
+   * @param organizationId - The organization ID
+   * @param userId - Optional user ID to search for
+   */
+  private findAndSetAdminFromOrganization(organizationId: number, userId?: number | null): void {
+    this.organizationApi.getAdminsByOrganization(organizationId).pipe(take(1)).subscribe({
+      next: (admins) => {
+        if (admins && admins.length > 0) {
+          let adminToUse: Admin | null = null;
+          
+          // Si se proporciona userId, buscar ese admin específico
+          if (userId) {
+            adminToUse = admins.find(a => a.userId === userId) || null;
+          }
+          
+          // Si no se encontró el admin específico o no se proporcionó userId, usar el primero
+          if (!adminToUse) {
+            adminToUse = admins[0];
+          }
+          
+          if (adminToUse && adminToUse.userId) {
+            const adminUserId = adminToUse.userId;
+            console.log(`Found admin in organization: userId=${adminUserId}, organizationId=${organizationId}`);
+            this.currentUserIdSignal.set(adminUserId);
+            this.currentUserRoleSignal.set('admin');
+            this.loadOrganizationDataWithId(adminUserId, organizationId, 'admin');
+          } else {
+            // No se encontró ningún admin, cargar datos sin establecer rol
+            console.warn(`No admin found in organization ${organizationId}, loading data without role`);
+            this.loadOrganizationById(organizationId);
+            this.loadDoctorsByOrganization(organizationId);
+            this.loadCaregiversByOrganization(organizationId);
+            this.loadSeniorCitizensByOrganization(organizationId);
+          }
+        } else {
+          // No hay admins en la organización, cargar datos sin establecer rol
+          console.warn(`No admins found in organization ${organizationId}, loading data without role`);
+          this.loadOrganizationById(organizationId);
+          this.loadDoctorsByOrganization(organizationId);
+          this.loadCaregiversByOrganization(organizationId);
+          this.loadSeniorCitizensByOrganization(organizationId);
+        }
+      },
+      error: (err) => {
+        console.error(`Error loading admins for organization ${organizationId}:`, err);
+        // Cargar datos de la organización de todas formas
+        this.loadOrganizationById(organizationId);
+        this.loadDoctorsByOrganization(organizationId);
+        this.loadCaregiversByOrganization(organizationId);
+        this.loadSeniorCitizensByOrganization(organizationId);
+      }
+    });
   }
 
   /**
    * Gets the organization ID for a given user ID.
-   * Busca el organizationId según el rol del usuario:
-   * - admin: busca en Admins por userId
-   * - doctor: busca en Doctors por userId (desde API)
-   * - caregiver: busca en Caregivers por userId (desde API)
+   * @deprecated Este método ya no es confiable porque depende de datos hardcoded.
+   * Usar loadOrganizationDataByOrganizationId(organizationId, userId) o los métodos del store
+   * que obtienen datos del backend.
+   * 
+   * Este método solo funciona si el userId coincide con el usuario actual cargado desde el backend.
+   * 
    * @param userId - The user ID
-   * @returns The organization ID of that user. Returns 0 if user not found.
+   * @returns The organization ID of that user. Returns 0 if user not found or not loaded from backend.
    */
   getOrganizationIdByUserId(userId: number): number {
-    const user = this.USERS.find(u => u.id === userId);
-    if (!user) {
-      return 0;
+    // Intentar obtener el organizationId del signal actual si el userId coincide
+    const currentUserId = this.currentUserIdSignal();
+    if (currentUserId === userId) {
+      return this.getCurrentOrganizationId();
     }
-
-    if (user.role === 'admin') {
-      const admin = this.ADMINS.find(a => a.userId === userId.toString());
-      return admin ? admin.organizationId : 0;
-    } else if (user.role === 'doctor') {
-      // En producción: buscar doctor por userId en la API
-      // Por ahora retornamos 1 (Clínica Ortega)
-      return 1;
-    } else if (user.role === 'caregiver') {
-      // En producción: buscar caregiver por userId en la API
-      // Por ahora retornamos 2 (Casa de Reposo San Juan)
-      return 2;
-    }
-
+    // Si no coincide, retornar 0 (no se puede determinar sin consultar el backend)
+    console.warn(`getOrganizationIdByUserId: Cannot determine organizationId for userId ${userId} without backend query. Use loadOrganizationDataByOrganizationId() instead.`);
     return 0;
   }
 
@@ -239,8 +351,36 @@ export class OrganizationStore {
   }
 
   /**
+   * Verifica si los senior citizens ya están cargados para un organizationId específico.
+   * @param organizationId - El organizationId a verificar
+   * @returns true si los datos ya están cargados (incluso si es array vacío), false en caso contrario
+   */
+  isSeniorCitizensLoadedForOrganization(organizationId: number): boolean {
+    return this.loadedSeniorCitizensForOrgId() === organizationId;
+  }
+
+  /**
+   * Verifica si los doctors ya están cargados para un organizationId específico.
+   * @param organizationId - El organizationId a verificar
+   * @returns true si los datos ya están cargados (incluso si es array vacío), false en caso contrario
+   */
+  isDoctorsLoadedForOrganization(organizationId: number): boolean {
+    return this.loadedDoctorsForOrgId() === organizationId;
+  }
+
+  /**
+   * Verifica si los caregivers ya están cargados para un organizationId específico.
+   * @param organizationId - El organizationId a verificar
+   * @returns true si los datos ya están cargados (incluso si es array vacío), false en caso contrario
+   */
+  isCaregiversLoadedForOrganization(organizationId: number): boolean {
+    return this.loadedCaregiversForOrgId() === organizationId;
+  }
+
+  /**
    * Gets the current user's institution email domain.
    * Obtiene el dominio de la organización basándose en el organizationId.
+   * Prioriza la organización cargada desde el backend, usa hardcoded como fallback.
    * @returns The institution email domain. Returns empty string if no userId is set or no domain found.
    */
   getInstitutionEmailDomain(): string {
@@ -249,14 +389,25 @@ export class OrganizationStore {
       return '';
     }
     
-    const organization = this.ORGANIZATIONS.find(o => o.id === organizationId);
-    if (!organization) {
+    // Usar la organización cargada desde el backend
+    const loadedOrganization = this.currentOrganizationSignal();
+    let organizationName = '';
+    
+    if (loadedOrganization && loadedOrganization.id === organizationId) {
+      organizationName = loadedOrganization.name;
+    } else {
+      // Si no se ha cargado la organización, retornar string vacío
+      console.warn(`Organization with id ${organizationId} not loaded from backend yet.`);
+      return '';
+    }
+    
+    if (!organizationName) {
       return '';
     }
     
     // Generar dominio basado en el nombre de la organización
     // Ej: "Clínica Ortega" -> "@clinicaortega.com"
-    const domain = organization.name
+    const domain = organizationName
       .toLowerCase()
       .replace(/\s+/g, '')
       .normalize('NFD')
@@ -267,6 +418,7 @@ export class OrganizationStore {
 
   /**
    * Gets the current user's institution name.
+   * Prioriza la organización cargada desde el backend, usa hardcoded como fallback.
    * @returns The institution name. Returns empty string if no userId is set.
    */
   getInstitutionName(): string {
@@ -275,33 +427,44 @@ export class OrganizationStore {
       return '';
     }
     
-    const organization = this.ORGANIZATIONS.find(o => o.id === organizationId);
-    return organization ? organization.name : '';
+    // Usar la organización cargada desde el backend
+    const loadedOrganization = this.currentOrganizationSignal();
+    if (loadedOrganization && loadedOrganization.id === organizationId) {
+      return loadedOrganization.name;
+    }
+    
+    // Si no se ha cargado la organización, retornar string vacío
+    console.warn(`Organization with id ${organizationId} not loaded from backend yet.`);
+    return '';
   }
 
   /**
    * Gets the current user's role.
-   * Usa el userId establecido cuando se llamó a loadOrganizationData(userId).
-   * @returns The role of the current user. Returns empty string if no userId is set.
+   * El rol se determina desde el backend cuando se carga la organización.
+   * 
+   * @returns The role of the current user. Returns empty string if no userId is set or role not determined.
    */
   getCurrentUserRole(): string {
-    const currentUserId = this.currentUserIdSignal();
-    if (currentUserId === null) {
-      return '';
-    }
-    
-    const user = this.USERS.find(u => u.id === currentUserId);
-    return user ? user.role : '';
+    // El rol se establece desde el backend cuando se encuentra un admin/doctor/caregiver
+    return this.currentUserRoleSignal();
   }
 
   /**
    * Gets the current user's role for a specific userId (helper method para el layout).
+   * @deprecated Este método ya no es confiable porque depende de datos hardcoded.
+   * El rol se determina desde el backend. Usar getCurrentUserRole() si el userId coincide con el usuario actual.
+   * 
    * @param userId - The user ID
-   * @returns The role of the user
+   * @returns The role of the user. Returns empty string if userId doesn't match current user or role not determined.
    */
   getUserRoleByUserId(userId: number): string {
-    const user = this.USERS.find(u => u.id === userId);
-    return user ? user.role : '';
+    const currentUserId = this.currentUserIdSignal();
+    if (currentUserId === userId) {
+      return this.getCurrentUserRole();
+    }
+    // Si no coincide, no se puede determinar sin consultar el backend
+    console.warn(`getUserRoleByUserId: Cannot determine role for userId ${userId} without backend query.`);
+    return '';
   }
 
   /**
@@ -317,16 +480,16 @@ export class OrganizationStore {
       return null;
     }
     
-    const user = this.USERS.find(u => u.id === currentUserId);
-    if (!user) {
+    const role = this.getCurrentUserRole();
+    if (!role) {
       return null;
     }
 
-    if (user.role === 'doctor') {
+    if (role === 'doctor') {
       // Buscar doctor por userId en los doctores cargados
-      const doctor = this.doctors().find(d => d.userId === currentUserId.toString());
+      const doctor = this.doctors().find(d => d.userId === currentUserId);
       return doctor ? doctor.id : null;
-    } else if (user.role === 'caregiver') {
+    } else if (role === 'caregiver') {
       // Buscar caregiver por userId en los caregivers cargados
       const caregiver = this.caregivers().find(c => c.userId === currentUserId.toString());
       return caregiver ? caregiver.id : null;
@@ -338,9 +501,9 @@ export class OrganizationStore {
 
   /**
    * Gets the current organization type.
-   * @returns The organization type ('clinica' | 'resident') or null if not loaded.
+   * @returns The organization type ('clinic' | 'resident') or null if not loaded.
    */
-  getCurrentOrganizationType(): 'clinica' | 'resident' | null {
+  getCurrentOrganizationType(): 'clinic' | 'resident' | null {
     const organization = this.currentOrganizationSignal();
     return organization ? organization.type : null;
   }
@@ -361,14 +524,17 @@ export class OrganizationStore {
       },
       error: err => {
         console.error(`[Store] Error loading organization for organizationId ${organizationId}:`, err);
+        console.error(`[Store] Error details:`, {
+          status: err?.status,
+          statusText: err?.statusText,
+          message: err?.message,
+          url: err?.url,
+          error: err?.error
+        });
         this.errorSignal.set(this.formatError(err, 'Failed to load organization'));
         this.loadingSignal.set(false);
-        // Set a default organization based on organizationId if API fails
-        // This is a fallback for development/testing
-        const defaultOrg = organizationId === 1 
-          ? new Organization({ id: 1, name: 'Clínica Ortega', type: 'clinica' })
-          : new Organization({ id: 2, name: 'Casa de Reposo San Juan', type: 'resident' });
-        this.currentOrganizationSignal.set(defaultOrg);
+        // Don't set a default organization on error - let the error be displayed
+        // The user should fix the backend connection issue
       }
     });
   }
@@ -474,10 +640,10 @@ export class OrganizationStore {
   loadSeniorCitizenById(seniorCitizenId: number): void {
     const seniorCitizen = this.seniorCitizens().find(sc => sc.id === seniorCitizenId);
     if (seniorCitizen) {
-      console.log(`✅ Senior Citizen loaded: ${seniorCitizen.fullName} (id: ${seniorCitizen.id})`);
+      console.log(`Senior Citizen loaded: ${seniorCitizen.fullName} (id: ${seniorCitizen.id})`);
       this.selectedSeniorCitizenSignal.set(seniorCitizen);
     } else {
-      console.error(`❌ Senior Citizen with id ${seniorCitizenId} not found`);
+      console.error(`Senior Citizen with id ${seniorCitizenId} not found`);
       this.selectedSeniorCitizenSignal.set(null);
     }
   }
@@ -648,16 +814,47 @@ export class OrganizationStore {
       seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
     );
 
-    // Persist to API (backend will handle the junction table)
-    this.organizationApi.updateDoctor(doctor).pipe(retry(2)).subscribe({
-      next: (updatedDoctor) => {
-        // Update with server response
-        this.doctorsSignal.update(doctors =>
-          doctors.map(d => d.id === doctorId ? updatedDoctor : d)
+    // Validate IDs before sending to API
+    if (!doctorId || doctorId <= 0) {
+      throw new Error(`Invalid doctorId: ${doctorId}`);
+    }
+    if (!seniorCitizenId || seniorCitizenId <= 0) {
+      throw new Error(`Invalid seniorCitizenId: ${seniorCitizenId}`);
+    }
+    
+    console.log(`[Store] Calling API to assign seniorCitizenId=${seniorCitizenId} to doctorId=${doctorId}`);
+    
+    // Persist to API using the doctor-assignments endpoint (creates entry in doctor_assignments table)
+    this.organizationApi.assignSeniorCitizenToDoctor(doctorId, seniorCitizenId).pipe(retry(2)).subscribe({
+      next: (updatedSeniorCitizen) => {
+        console.log(`[Store] Assignment successful. Updated senior citizen:`, {
+          id: updatedSeniorCitizen.id,
+          name: updatedSeniorCitizen.fullName,
+          assignedDoctorId: updatedSeniorCitizen.assignedDoctorId,
+          expectedDoctorId: doctorId
+        });
+        
+        // Update senior citizen with server response (backend is source of truth)
+        this.seniorCitizensSignal.update(seniorCitizens =>
+          seniorCitizens.map(sc => sc.id === seniorCitizenId ? updatedSeniorCitizen : sc)
         );
+        
+        // Reload doctors to get updated assignedSeniorIds from backend
+        this.loadDoctorsByOrganization(doctor.organizationId);
+        // Reload senior citizens to ensure we have the latest data from backend
+        // This ensures consistency, and since we no longer recalculate assignments,
+        // the backend's assignedDoctorId will be preserved
+        this.loadSeniorCitizensByOrganization(doctor.organizationId);
       },
       error: err => {
-        console.error('Failed to persist doctor assignment:', err);
+        console.error('[Store] Failed to persist doctor assignment:', err);
+        console.error('[Store] Error details:', {
+          status: err?.status,
+          statusText: err?.statusText,
+          message: err?.message,
+          error: err?.error,
+          url: err?.url
+        });
         // Revert optimistic update
         doctor.unassignFromSenior(seniorCitizenId);
         seniorCitizen.assignedDoctorId = previousDoctorId;
@@ -709,13 +906,12 @@ export class OrganizationStore {
       seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
     );
 
-    // Persist to API (backend will handle the junction table)
-    this.organizationApi.updateDoctor(doctor).pipe(retry(2)).subscribe({
-      next: (updatedDoctor) => {
-        // Update with server response
-        this.doctorsSignal.update(doctors =>
-          doctors.map(d => d.id === doctorId ? updatedDoctor : d)
-        );
+    // Persist to API using the doctor-assignments endpoint (removes entry from doctor_assignments table)
+    this.organizationApi.unassignSeniorCitizenFromDoctor(doctorId, seniorCitizenId).pipe(retry(2)).subscribe({
+      next: () => {
+        // Reload doctors and senior citizens to get updated state from backend
+        this.loadDoctorsByOrganization(doctor.organizationId);
+        this.loadSeniorCitizensByOrganization(doctor.organizationId);
       },
       error: err => {
         console.error('Failed to persist doctor unassignment:', err);
@@ -989,7 +1185,7 @@ export class OrganizationStore {
           this.seniorCitizensSignal.update(seniorCitizens => [...seniorCitizens, createdSeniorCitizen]);
         } else {
           console.warn(
-            `⚠️ Created senior citizen has different organizationId (${createdSeniorCitizen.organizationId}) ` +
+            `Created senior citizen has different organizationId (${createdSeniorCitizen.organizationId}) ` +
             `than current (${currentOrganizationId}). Not adding to list.`
           );
         }
@@ -1046,7 +1242,7 @@ export class OrganizationStore {
         } else {
           // If organizationId changed (shouldn't happen), remove from list
           console.warn(
-            `⚠️ Updated senior citizen has different organizationId (${seniorCitizen.organizationId}) ` +
+            `Updated senior citizen has different organizationId (${seniorCitizen.organizationId}) ` +
             `than current (${currentOrganizationId}). Removing from list.`
           );
           this.seniorCitizensSignal.update(seniorCitizens =>
@@ -1086,35 +1282,70 @@ export class OrganizationStore {
    * @param organizationId - The organization ID to filter doctors.
    */
   loadDoctorsByOrganization(organizationId: number): void {
-    console.log(`📋 [Store] Loading doctors for organizationId: ${organizationId}`);
+    console.log(`[Store] Loading doctors for organizationId: ${organizationId}`);
     this.loadingSignal.set(true);
-    this.errorSignal.set(null);
+    // No limpiar el errorSignal aquí para no sobrescribir errores importantes
+    
     this.organizationApi.getDoctorsByOrganization(organizationId).pipe(take(1)).subscribe({
       next: doctors => {
         // Validate that all loaded doctors belong to the requested organization
         const invalidDoctors = doctors.filter(d => d.organizationId !== organizationId);
         if (invalidDoctors.length > 0) {
           console.warn(
-            `⚠️ [Store] Found ${invalidDoctors.length} doctor(s) with different organizationId. ` +
+            `[Store] Found ${invalidDoctors.length} doctor(s) with different organizationId. ` +
             `Expected: ${organizationId}, Filtering them out.`
           );
         }
         
         // Filter to ensure only doctors from the requested organization are stored
         const validDoctors = doctors.filter(d => d.organizationId === organizationId);
-        console.log(`✅ [Store] Loaded ${validDoctors.length} doctor(s) for organizationId: ${organizationId}`);
+        console.log(`[Store] Loaded ${validDoctors.length} doctor(s) for organizationId: ${organizationId}`);
         
         this.doctorsSignal.set(validDoctors);
+        this.loadedDoctorsForOrgId.set(organizationId); // Marcar como cargado
         
-        // Recalculate assignments for senior citizens after loading doctors
-        this.recalculateSeniorCitizenAssignments();
+        // NOTE: We don't recalculate senior citizen assignments here because the backend
+        // is the source of truth and already includes assignedDoctorId and assignedCaregiverId
+        // in the SeniorCitizenResource. Recalculating would overwrite backend data with
+        // potentially stale local data.
         
         this.loadingSignal.set(false);
       },
       error: err => {
-        console.error(`❌ [Store] Error loading doctors for organizationId ${organizationId}:`, err);
-        this.errorSignal.set(this.formatError(err, 'Failed to load doctors'));
-        this.loadingSignal.set(false);
+        // Verificar si es un error 404 y si la organización es tipo "resident"
+        // En ese caso, es esperado que no haya doctors, así que no es un error fatal
+        const organization = this.currentOrganizationSignal();
+        const isResident = organization?.type === 'resident';
+        const is404 = err?.status === 404;
+        
+        if (is404 && isResident) {
+          // Para organizaciones tipo "resident", un 404 de doctors es esperado
+          console.log(`[Store] No doctors found for resident organization ${organizationId} (expected)`);
+          this.doctorsSignal.set([]); // Establecer array vacío
+          this.doctorsErrorSignal.set(null); // Limpiar error
+          this.loadedDoctorsForOrgId.set(organizationId); // Marcar como cargado (aunque esté vacío)
+          this.loadingSignal.set(false);
+        } else if (is404) {
+          // Para otros casos, un 404 también puede ser válido (lista vacía)
+          console.log(`[Store] No doctors found for organizationId ${organizationId} (empty list, not an error)`);
+          this.doctorsSignal.set([]);
+          this.doctorsErrorSignal.set(null); // Limpiar error
+          this.loadedDoctorsForOrgId.set(organizationId); // Marcar como cargado (aunque esté vacío)
+          this.loadingSignal.set(false);
+        } else {
+          // Error real al cargar - establecer error específico de doctors (no bloquea el layout)
+          console.error(`[Store] Error loading doctors for organizationId ${organizationId}:`, err);
+          console.error(`[Store] Error details:`, {
+            status: err?.status,
+            statusText: err?.statusText,
+            message: err?.message,
+            url: err?.url,
+            error: err?.error
+          });
+          // Establecer error específico de doctors (el componente puede mostrarlo)
+          this.doctorsErrorSignal.set(this.formatError(err, 'Failed to load doctors'));
+          this.loadingSignal.set(false);
+        }
       }
     });
   }
@@ -1125,46 +1356,73 @@ export class OrganizationStore {
    * @param organizationId - The organization ID to filter senior citizens.
    */
   loadSeniorCitizensByOrganization(organizationId: number): void {
-    console.log(`📋 [Store] Loading senior citizens for organizationId: ${organizationId}`);
+    console.log(`[Store] Loading senior citizens for organizationId: ${organizationId}`);
     this.loadingSignal.set(true);
-    this.errorSignal.set(null);
+    // No limpiar el errorSignal aquí para no sobrescribir errores importantes
+    
     this.organizationApi.getSeniorCitizensByOrganization(organizationId).pipe(take(1)).subscribe({
       next: seniorCitizens => {
         // Validate that all loaded senior citizens belong to the requested organization
         const invalidSeniorCitizens = seniorCitizens.filter(sc => sc.organizationId !== organizationId);
         if (invalidSeniorCitizens.length > 0) {
           console.warn(
-            `⚠️ [Store] Found ${invalidSeniorCitizens.length} senior citizen(s) with different organizationId. ` +
+            `[Store] Found ${invalidSeniorCitizens.length} senior citizen(s) with different organizationId. ` +
             `Expected: ${organizationId}, Filtering them out.`
           );
         }
         
         // Filter to ensure only senior citizens from the requested organization are stored
-        let validSeniorCitizens = seniorCitizens.filter(sc => sc.organizationId === organizationId);
+        const validSeniorCitizens = seniorCitizens.filter(sc => sc.organizationId === organizationId);
         
-        // Calculate assignedDoctorId and assignedCaregiverId from doctors and caregivers
-        validSeniorCitizens = this.calculateAssignments(validSeniorCitizens);
+        // NOTE: We trust the backend's assignedDoctorId and assignedCaregiverId values.
+        // The backend already includes these fields in SeniorCitizenResource, so we don't need to calculate them.
+        // The calculateAssignments method was overwriting backend data with potentially stale local data.
         
-        console.log(`✅ [Store] Loaded ${validSeniorCitizens.length} senior citizen(s) for organizationId: ${organizationId}`);
+        console.log(`[Store] Loaded ${validSeniorCitizens.length} senior citizen(s) for organizationId: ${organizationId}`);
+        console.log(`[Store] Senior citizens with assignments:`, validSeniorCitizens.map(sc => ({
+          id: sc.id,
+          name: sc.fullName,
+          assignedDoctorId: sc.assignedDoctorId,
+          assignedCaregiverId: sc.assignedCaregiverId
+        })));
         
         this.seniorCitizensSignal.set(validSeniorCitizens);
+        this.seniorCitizensErrorSignal.set(null); // Limpiar error al cargar exitosamente
+        this.loadedSeniorCitizensForOrgId.set(organizationId); // Marcar como cargado
         this.loadingSignal.set(false);
       },
       error: err => {
-        console.error(`❌ [Store] Error loading senior citizens for organizationId ${organizationId}:`, err);
-        this.errorSignal.set(this.formatError(err, 'Failed to load senior citizens'));
-        this.loadingSignal.set(false);
+        // Un 404 o lista vacía NO es un error - es un estado válido
+        // Para admins, esto permite mostrar los botones de registro
+        // Para doctors/caregivers, esto muestra que no tienen asignados
+        const is404 = err?.status === 404;
+        
+        if (is404) {
+          // Un 404 significa que no hay senior citizens - esto es válido, no es un error
+          console.log(`[Store] No senior citizens found for organizationId ${organizationId} (empty list, not an error)`);
+          this.seniorCitizensSignal.set([]); // Establecer array vacío
+          this.seniorCitizensErrorSignal.set(null); // Limpiar error
+          this.loadedSeniorCitizensForOrgId.set(organizationId); // Marcar como cargado (aunque esté vacío)
+          this.loadingSignal.set(false);
+          // No establecer errorSignal - esto permite mostrar los botones de registro para admins
+        } else {
+          // Error real al cargar - establecer error específico de senior citizens (no bloquea el layout)
+          console.error(`[Store] Error loading senior citizens for organizationId ${organizationId}:`, err);
+          console.error(`[Store] Error details:`, {
+            status: err?.status,
+            statusText: err?.statusText,
+            message: err?.message,
+            url: err?.url,
+            error: err?.error
+          });
+          // Establecer error específico de senior citizens (el componente puede mostrarlo)
+          this.seniorCitizensErrorSignal.set(this.formatError(err, 'Failed to load senior citizens'));
+          this.loadingSignal.set(false);
+        }
       }
     });
   }
 
-  /**
-   * Calculates assignedDoctorId and assignedCaregiverId for senior citizens based on doctors and caregivers.
-   * Since assignments are stored in doctors' and caregivers' assignedSeniorIds arrays,
-   * we need to reverse-lookup to populate the senior citizens' assignedDoctorId and assignedCaregiverId.
-   * @param seniorCitizens - Array of senior citizens to update
-   * @returns Array of senior citizens with calculated assignments
-   */
   private calculateAssignments(seniorCitizens: SeniorCitizen[]): SeniorCitizen[] {
     const doctors = this.doctors();
     const caregivers = this.caregivers();
@@ -1208,35 +1466,59 @@ export class OrganizationStore {
    * @param organizationId - The organization ID to filter caregivers.
    */
   loadCaregiversByOrganization(organizationId: number): void {
-    console.log(`📋 [Store] Loading caregivers for organizationId: ${organizationId}`);
+    console.log(`[Store] Loading caregivers for organizationId: ${organizationId}`);
     this.loadingSignal.set(true);
-    this.errorSignal.set(null);
+    // No limpiar el errorSignal aquí para no sobrescribir errores importantes
+    
     this.organizationApi.getCaregiversByOrganization(organizationId).pipe(take(1)).subscribe({
       next: caregivers => {
         // Validate that all loaded caregivers belong to the requested organization
         const invalidCaregivers = caregivers.filter(c => c.organizationId !== organizationId);
         if (invalidCaregivers.length > 0) {
           console.warn(
-            `⚠️ [Store] Found ${invalidCaregivers.length} caregiver(s) with different organizationId. ` +
+            `[Store] Found ${invalidCaregivers.length} caregiver(s) with different organizationId. ` +
             `Expected: ${organizationId}, Filtering them out.`
           );
         }
         
         // Filter to ensure only caregivers from the requested organization are stored
         const validCaregivers = caregivers.filter(c => c.organizationId === organizationId);
-        console.log(`✅ [Store] Loaded ${validCaregivers.length} caregiver(s) for organizationId: ${organizationId}`);
+        console.log(`[Store] Loaded ${validCaregivers.length} caregiver(s) for organizationId: ${organizationId}`);
         
         this.caregiversSignal.set(validCaregivers);
-        
-        // Recalculate assignments for senior citizens after loading caregivers
-        this.recalculateSeniorCitizenAssignments();
-        
+        this.loadedCaregiversForOrgId.set(organizationId);
         this.loadingSignal.set(false);
       },
       error: err => {
-        console.error(`❌ [Store] Error loading caregivers for organizationId ${organizationId}:`, err);
-        this.errorSignal.set(this.formatError(err, 'Failed to load caregivers'));
-        this.loadingSignal.set(false);
+
+        const organization = this.currentOrganizationSignal();
+        const isClinic = organization?.type === 'clinic';
+        const is404 = err?.status === 404;
+        
+        if (is404 && isClinic) {
+          console.log(`[Store] No caregivers found for clinic organization ${organizationId} (expected)`);
+          this.caregiversSignal.set([]);
+          this.caregiversErrorSignal.set(null);
+          this.loadedCaregiversForOrgId.set(organizationId);
+          this.loadingSignal.set(false);
+        } else if (is404) {
+          console.log(`[Store] No caregivers found for organizationId ${organizationId} (empty list, not an error)`);
+          this.caregiversSignal.set([]);
+          this.caregiversErrorSignal.set(null);
+          this.loadedCaregiversForOrgId.set(organizationId);
+          this.loadingSignal.set(false);
+        } else {
+          console.error(`[Store] Error loading caregivers for organizationId ${organizationId}:`, err);
+          console.error(`[Store] Error details:`, {
+            status: err?.status,
+            statusText: err?.statusText,
+            message: err?.message,
+            url: err?.url,
+            error: err?.error
+          });
+          this.caregiversErrorSignal.set(this.formatError(err, 'Failed to load caregivers'));
+          this.loadingSignal.set(false);
+        }
       }
     });
   }

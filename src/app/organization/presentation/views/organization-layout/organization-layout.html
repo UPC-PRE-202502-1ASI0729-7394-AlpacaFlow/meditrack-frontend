@@ -39,6 +39,18 @@
     </mat-sidenav>
 
     <mat-sidenav-content>
-        <router-outlet></router-outlet>
+        @if (isLoading()) {
+            <div class="loading-container">
+                <mat-icon>hourglass_empty</mat-icon>
+                <p>Cargando organización...</p>
+            </div>
+        } @else if (error()) {
+            <div class="error-container">
+                <mat-icon>error</mat-icon>
+                <p>Error al cargar la organización: {{ error() }}</p>
+            </div>
+        } @else {
+            <router-outlet></router-outlet>
+        }
     </mat-sidenav-content>
 </mat-sidenav-container>

@@ -35,7 +35,7 @@ export class SeniorCitizenForm implements OnChanges {
       height: [null, [Validators.required, Validators.min(0)]],
       dni: ['', Validators.required],
       imageUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i)]],
-      deviceIot: ['', Validators.required],
+      deviceId: [null, [Validators.required, Validators.min(0)]],
       organizationId: [organizationId] // Get from store (patrón de relatives)
     });
   }
@@ -54,7 +54,7 @@ export class SeniorCitizenForm implements OnChanges {
         height: this.seniorCitizen.height,
         dni: this.seniorCitizen.dni,
         imageUrl: this.seniorCitizen.imageUrl,
-        deviceIot: this.seniorCitizen.deviceIot,
+        deviceId: this.seniorCitizen.deviceId,
         organizationId: this.seniorCitizen.organizationId
       });
     } else if (changes['seniorCitizen'] && !this.seniorCitizen) {
@@ -93,7 +93,7 @@ export class SeniorCitizenForm implements OnChanges {
       height: Number(this.form.value.height),
       dni: this.form.value.dni,
       imageUrl: this.form.value.imageUrl || '/assets/default-senior-citizen.png',
-      deviceIot: this.form.value.deviceIot
+      deviceId: Number(this.form.value.deviceId)
     });
 
     // Log para verificar que el organizationId se está estableciendo correctamente
@@ -110,7 +110,7 @@ export class SeniorCitizenForm implements OnChanges {
       // Emitir el evento para cerrar el formulario
       this.saved.emit(seniorCitizen);
     } catch (error) {
-      console.error('❌ Error creating/updating senior citizen:', error);
+      console.error('Error creating/updating senior citizen:', error);
       // Mostrar error al usuario (puedes agregar un servicio de notificación aquí)
       alert(error instanceof Error ? error.message : 'Error creating/updating senior citizen');
     }

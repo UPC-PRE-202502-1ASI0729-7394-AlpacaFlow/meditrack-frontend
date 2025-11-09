@@ -58,7 +58,7 @@ export class SeniorCitizenStatistic implements OnInit, OnDestroy {
     private loadSeniorCitizen(): void {
         const seniorCitizenId = this.route.snapshot.paramMap.get('id');
         if (seniorCitizenId) {
-            console.log(`📊 SeniorCitizenStatistic: Loading senior citizen ${seniorCitizenId}`);
+            console.log(`SeniorCitizenStatistic: Loading senior citizen ${seniorCitizenId}`);
             this.organizationStore.loadSeniorCitizenById(Number(seniorCitizenId));
         }
     }

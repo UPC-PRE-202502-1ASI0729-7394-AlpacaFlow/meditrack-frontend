@@ -1,8 +1,16 @@
 <!-- Lista de senior citizens -->
 @if (!showForm) {
     <div class="senior-citizen-list-container">
-            <!-- Estado vacío -->
-            @if (organizationStore.filteredSeniorCitizens().length === 0) {
+            <!-- Error al cargar (solo si hay un error real, no un 404) -->
+            @if (organizationStore.seniorCitizensError()) {
+                <div class="error-state">
+                    <mat-icon>error</mat-icon>
+                    <p class="error-text">{{ organizationStore.seniorCitizensError() }}</p>
+                </div>
+            }
+            
+            <!-- Estado vacío (solo si no hay error) -->
+            @if (organizationStore.filteredSeniorCitizens().length === 0 && !organizationStore.seniorCitizensError()) {
                 <div class="empty-state">
                     <div class="empty-content">
                         <p class="empty-text">{{ 'senior-citizen.empty' | translate }}</p>

@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { OrganizationStore } from '../../../application/organization.store';
 import { SeniorCitizen } from '../../../domain/model/senior-citizen.entity';
@@ -10,6 +11,7 @@ import { SeniorCitizenItem } from '../../components/senior-citizen-item/senior-c
 import { SeniorCitizenForm } from '../senior-citizen-form/senior-citizen-form';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { distinctUntilChanged, map, debounceTime, filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-senior-citizen-list',
@@ -18,6 +20,7 @@ import { Subscription } from 'rxjs';
     CommonModule,
     MatButtonModule,
     MatDialogModule,
+    MatIconModule,
     TranslatePipe,
     SeniorCitizenForm,
     SeniorCitizenItem
@@ -30,6 +33,9 @@ export class SeniorCitizenListComponent implements OnInit, OnDestroy {
   editingSeniorCitizen: SeniorCitizen | null = null;
   private routeSubscription?: Subscription;
   private parentRouteSubscription?: Subscription;
+  private lastLoadedOrganizationId: number | null = null; // Guardar el último organizationId cargado
+  private isLoading = false; // Flag local para evitar recargas simultáneas
+  private hasInitialized = false; // Flag para evitar múltiples inicializaciones
 
   constructor(
       public organizationStore: OrganizationStore,
@@ -38,29 +44,87 @@ export class SeniorCitizenListComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Suscribirse a cambios en el parámetro de la ruta padre (:id en /organization/:id)
-    // Esto asegura que cuando cambie la organización, los datos se recarguen
-    this.parentRouteSubscription = this.route.parent?.paramMap.subscribe(params => {
-      const userIdStr = params.get('id');
-      if (userIdStr) {
-        const userId = parseInt(userIdStr, 10);
-        const organizationId = this.organizationStore.getOrganizationIdByUserId(userId);
-        console.log(`🔄 SeniorCitizenList: Detected organization change, reloading senior citizens for userId: ${userId}, organizationId: ${organizationId}`);
-        this.organizationStore.loadSeniorCitizensByOrganization(organizationId);
-      }
-    });
+    // Evitar múltiples inicializaciones
+    if (this.hasInitialized) {
+      return;
+    }
+    this.hasInitialized = true;
 
-    // También verificar la ruta actual al inicializar
+    // Primero, verificar la ruta actual al inicializar (solo una vez)
     const parentParams = this.route.parent?.snapshot.paramMap;
     if (parentParams) {
-      const userIdStr = parentParams.get('id');
-      if (userIdStr) {
-        const userId = parseInt(userIdStr, 10);
-        const organizationId = this.organizationStore.getOrganizationIdByUserId(userId);
-        console.log(`🔄 SeniorCitizenList: Initial load for userId: ${userId}, organizationId: ${organizationId}`);
-        this.organizationStore.loadSeniorCitizensByOrganization(organizationId);
+      const organizationIdStr = parentParams.get('organizationId');
+      if (organizationIdStr) {
+        const organizationId = parseInt(organizationIdStr, 10);
+        if (organizationId && !this.isLoading) {
+          // Verificar si los datos ya están cargados para este organizationId
+          // Usar el método del store para verificar si ya se cargaron los datos
+          const alreadyLoaded = this.organizationStore.isSeniorCitizensLoadedForOrganization(organizationId);
+          
+          // Solo cargar si no hay datos cargados o si el organizationId cambió
+          if (!alreadyLoaded && this.lastLoadedOrganizationId !== organizationId) {
+            console.log(`SeniorCitizenList: Initial load for organizationId: ${organizationId}`);
+            this.lastLoadedOrganizationId = organizationId;
+            this.isLoading = true;
+            this.organizationStore.loadSeniorCitizensByOrganization(organizationId);
+            
+            // Resetear el flag cuando el loading termine
+            const checkLoading = setInterval(() => {
+              if (!this.organizationStore.loading() && this.isLoading) {
+                clearInterval(checkLoading);
+                setTimeout(() => {
+                  this.isLoading = false;
+                }, 100);
+              }
+            }, 100);
+            
+            // Limpiar el intervalo después de 5 segundos como fallback
+            setTimeout(() => {
+              clearInterval(checkLoading);
+              this.isLoading = false;
+            }, 5000);
+          } else {
+            console.log(`SeniorCitizenList: Data already loaded for organizationId: ${organizationId}, skipping load`);
+            this.lastLoadedOrganizationId = organizationId;
+          }
+        }
       }
     }
+
+    // Suscribirse a cambios en el parámetro de la ruta padre (:organizationId en /organization/:organizationId)
+    // Usar distinctUntilChanged y debounceTime para evitar recargas innecesarias
+    this.parentRouteSubscription = this.route.parent?.paramMap.pipe(
+      map(params => {
+        const organizationIdStr = params.get('organizationId');
+        return organizationIdStr ? parseInt(organizationIdStr, 10) : null;
+      }),
+      filter(organizationId => organizationId !== null), // Filtrar valores null
+      distinctUntilChanged(), // Solo emitir si el organizationId cambió
+      debounceTime(500) // Esperar 500ms antes de procesar para evitar múltiples emisiones rápidas
+    ).subscribe(organizationId => {
+      if (organizationId && organizationId !== this.lastLoadedOrganizationId && !this.isLoading) {
+        console.log(`SeniorCitizenList: Detected organization change, reloading senior citizens for organizationId: ${organizationId}`);
+        this.lastLoadedOrganizationId = organizationId;
+        this.isLoading = true;
+        this.organizationStore.loadSeniorCitizensByOrganization(organizationId);
+        
+        // Resetear el flag cuando el loading termine
+        const checkLoading = setInterval(() => {
+          if (!this.organizationStore.loading() && this.isLoading) {
+            clearInterval(checkLoading);
+            setTimeout(() => {
+              this.isLoading = false;
+            }, 100);
+          }
+        }, 100);
+        
+        // Limpiar el intervalo después de 5 segundos como fallback
+        setTimeout(() => {
+          clearInterval(checkLoading);
+          this.isLoading = false;
+        }, 5000);
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -70,6 +134,10 @@ export class SeniorCitizenListComponent implements OnInit, OnDestroy {
     if (this.parentRouteSubscription) {
       this.parentRouteSubscription.unsubscribe();
     }
+    // Resetear flags al destruir el componente
+    this.hasInitialized = false;
+    this.isLoading = false;
+    this.lastLoadedOrganizationId = null;
   }
 
   openAddSeniorCitizenForm(): void {

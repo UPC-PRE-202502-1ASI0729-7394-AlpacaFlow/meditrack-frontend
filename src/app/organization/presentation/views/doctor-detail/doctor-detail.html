@@ -2,22 +2,22 @@
   <!-- Doctor Profile Section -->
   <div class="doctor-profile-section">
     <div class="doctor-avatar">
-      <img [src]="doctor?.imageUrl || '/assets/default-doctor.png'" 
-           [alt]="doctor?.fullName"
+      <img [src]="doctor()?.imageUrl || '/assets/default-doctor.png'" 
+           [alt]="doctor()?.fullName"
            class="avatar-image">
     </div>
     
     <div class="doctor-info">
-      <h2 class="doctor-name">{{ 'doctor.title' | translate }} {{ doctor?.fullName }}</h2>
+      <h2 class="doctor-name">{{ 'doctor.title' | translate }} {{ doctor()?.fullName }}</h2>
       <div class="doctor-details">
         <div class="detail-item">
-          <span class="value">{{ 'doctor.age' | translate }}: {{ doctor?.age }} {{ 'doctor.phoneNumber' | translate }}: {{ doctor?.phoneNumber }}</span>
+          <span class="value">{{ 'doctor.age' | translate }}: {{ doctor()?.age }} {{ 'doctor.phoneNumber' | translate }}: {{ doctor()?.phoneNumber }}</span>
         </div>
         <div class="detail-item">
-          <span class="value">{{ 'doctor.specialty' | translate }}: {{ doctor?.specialty }}</span>
+          <span class="value">{{ 'doctor.specialty' | translate }}: {{ doctor()?.specialty }}</span>
         </div>
         <div class="detail-item">
-          <span class="value">{{ 'doctor.email' | translate }}: {{ doctor?.email }}</span>
+          <span class="value">{{ 'doctor.email' | translate }}: {{ doctor()?.email }}</span>
         </div>
       </div>
     </div>
@@ -30,15 +30,15 @@
   <div class="assigned-senior-citizens-section">
     <h3 class="section-title">{{ 'doctor.assignedSeniorCitizens' | translate }}</h3>
     
-    @if (assignedSeniorCitizens.length === 0) {
+    @if (assignedSeniorCitizens().length === 0) {
       <div class="no-senior-citizens">
         <p class="no-senior-citizens-text">{{ 'senior-citizen.empty' | translate }}</p>
       </div>
     }
     
-    @if (assignedSeniorCitizens.length > 0) {
+    @if (assignedSeniorCitizens().length > 0) {
       <div class="assigned-senior-citizens-grid">
-        @for (seniorCitizen of assignedSeniorCitizens; track seniorCitizen.id) {
+        @for (seniorCitizen of assignedSeniorCitizens(); track seniorCitizen.id) {
           <div class="assigned-senior-citizen-card">
             <div class="senior-citizen-avatar">
               <img [src]="seniorCitizen.imageUrl || '/assets/default-senior-citizen.png'" 
@@ -70,7 +70,7 @@
               [(ngModel)]="selectedSeniorCitizenId"
               (change)="onSeniorCitizenSelect($any($event.target).value)">
         <option value="">{{ 'doctor.selectSeniorCitizen' | translate }}</option>
-        @for (seniorCitizen of availableSeniorCitizens; track seniorCitizen.id) {
+        @for (seniorCitizen of availableSeniorCitizens(); track seniorCitizen.id) {
           <option [value]="seniorCitizen.id" [disabled]="seniorCitizen.assignedCaregiverId !== null">
             {{ getSeniorCitizenFullName(seniorCitizen) }}
             @if (getAssignedPersonName(seniorCitizen)) {

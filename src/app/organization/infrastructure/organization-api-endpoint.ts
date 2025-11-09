@@ -28,13 +28,13 @@ export class OrganizationsApiEndpoint extends
    */
   override getById(id: number) {
     const url = `${this.endpointUrl}/${id}`;
-    console.log(`🌐 [API] Requesting organization from: ${url}`);
+    console.log(`[API] Requesting organization from: ${url}`);
     return this.http.get<OrganizationResource>(url)
       .pipe(
         map(resource => {
-          console.log(`📦 [API] Raw response from server:`, resource);
+          console.log(`[API] Raw response from server:`, resource);
           const entity = this.assembler.toEntityFromResource(resource);
-          console.log(`🔄 [API] Transformed entity:`, entity);
+          console.log(`[API] Transformed entity:`, entity);
           return entity;
         })
       );

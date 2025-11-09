@@ -28,20 +28,26 @@ export class SeniorCitizenItem {
   ) {}
 
   /**
-   * Obtiene el userId de la ruta padre (organization/:id)
+   * Obtiene organizationId, userRole y userId de la ruta padre
    */
-  private getUserIdFromRoute(): number | null {
-    // Intentar obtener el userId de la ruta padre
+  private getRouteParams(): { organizationId: number | null; userRole: string | null; userId: number | null } {
     let currentRoute: ActivatedRoute | null = this.route;
     while (currentRoute) {
       const params = currentRoute.snapshot.paramMap;
-      const userId = params.get('id');
-      if (userId) {
-        return parseInt(userId, 10);
+      const organizationId = params.get('organizationId');
+      const userRole = params.get('userRole');
+      const userId = params.get('userId');
+      
+      if (organizationId) {
+        return {
+          organizationId: parseInt(organizationId, 10),
+          userRole: userRole,
+          userId: userId ? parseInt(userId, 10) : null
+        };
       }
       currentRoute = currentRoute.parent;
     }
-    return null;
+    return { organizationId: null, userRole: null, userId: null };
   }
 
   onEdit(event: Event) {
@@ -55,22 +61,28 @@ export class SeniorCitizenItem {
   }
 
   onCardClick() {
-    const userId = this.getUserIdFromRoute();
-    if (userId) {
-      // Navigate to senior citizen profile
-      this.router.navigate(['/organization', userId, 'senior-citizens', this.seniorCitizen.id, 'profile']);
+    const { organizationId, userRole, userId } = this.getRouteParams();
+    if (organizationId) {
+      if (userRole && userId) {
+        this.router.navigate(['/organization', organizationId, userRole, userId, 'senior-citizens', this.seniorCitizen.id, 'profile']);
+      } else {
+        this.router.navigate(['/organization', organizationId, 'senior-citizens', this.seniorCitizen.id, 'profile']);
+      }
     } else {
-      console.error('❌ SeniorCitizenItem: Could not find userId in route');
+      console.error('SeniorCitizenItem: Could not find organizationId in route');
     }
   }
 
   onCardDoubleClick() {
-    const userId = this.getUserIdFromRoute();
-    if (userId) {
-      // Navigate to senior citizen profile
-      this.router.navigate(['/organization', userId, 'senior-citizens', this.seniorCitizen.id, 'profile']);
+    const { organizationId, userRole, userId } = this.getRouteParams();
+    if (organizationId) {
+      if (userRole && userId) {
+        this.router.navigate(['/organization', organizationId, userRole, userId, 'senior-citizens', this.seniorCitizen.id, 'profile']);
+      } else {
+        this.router.navigate(['/organization', organizationId, 'senior-citizens', this.seniorCitizen.id, 'profile']);
+      }
     } else {
-      console.error('❌ SeniorCitizenItem: Could not find userId in route');
+      console.error('SeniorCitizenItem: Could not find organizationId in route');
     }
   }
 }

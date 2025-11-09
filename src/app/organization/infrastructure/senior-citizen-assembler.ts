@@ -18,25 +18,25 @@ export class SeniorCitizensAssembler implements BaseAssembler<SeniorCitizen, Sen
     }
 
     /**
-     * Converts a SeniorCitizenResource (database schema - snake_case) to a SeniorCitizen entity (domain - camelCase).
-     * Maps database field names to domain entity property names.
-     * @param resource - The resource to convert (from backend API, uses database field names).
+     * Converts a SeniorCitizenResource (backend JSON - camelCase) to a SeniorCitizen entity (domain - camelCase).
+     * Maps backend JSON property names to domain entity property names.
+     * @param resource - The resource to convert (from backend API, uses camelCase).
      * @returns The converted SeniorCitizen entity (domain model, uses camelCase).
      */
     toEntityFromResource(resource: SeniorCitizenResource): SeniorCitizen {
         return new SeniorCitizen({
             id: resource.id,
-            organizationId: resource.org_id, // BD: org_id → Entity: organizationId
-            firstName: resource.first_name, // BD: first_name → Entity: firstName
-            lastName: resource.last_name, // BD: last_name → Entity: lastName
-            birthDate: resource.birth_date, // BD: birth_date → Entity: birthDate (will be converted to Date in constructor)
-            age: resource.age, // Optional, computed from birth_date
-            gender: resource.gender, // BD: gender → Entity: gender
-            weight: resource.weight, // BD: weight → Entity: weight
-            dni: resource.dni, // BD: dni → Entity: dni
-            height: resource.height, // BD: height → Entity: height
-            imageUrl: resource.profile_image, // BD: profile_image → Entity: imageUrl
-            deviceIot: resource.device_id, // BD: device_id → Entity: deviceIot
+            organizationId: resource.organizationId,
+            firstName: resource.firstName,
+            lastName: resource.lastName,
+            birthDate: typeof resource.birthDate === 'string' ? new Date(resource.birthDate) : resource.birthDate, // Convert string to Date if needed
+            age: resource.age,
+            gender: resource.gender,
+            weight: resource.weight,
+            dni: resource.dni,
+            height: resource.height,
+            imageUrl: resource.imageUrl,
+            deviceId: typeof resource.deviceId === 'string' ? Number(resource.deviceId) : resource.deviceId,
             assignedDoctorId: resource.assignedDoctorId ?? null, // From Doctor_assignments table (single doctor only)
             assignedCaregiverId: resource.assignedCaregiverId ?? null, // From Caregiver_assignments table (single caregiver only)
             signalVitals: resource.signalVitals,
@@ -45,27 +45,27 @@ export class SeniorCitizensAssembler implements BaseAssembler<SeniorCitizen, Sen
     }
 
     /**
-     * Converts a SeniorCitizen entity (domain - camelCase) to a SeniorCitizenResource (database schema - snake_case).
-     * Maps domain entity property names to database field names for the backend API.
+     * Converts a SeniorCitizen entity (domain - camelCase) to a SeniorCitizenResource (backend JSON - camelCase).
+     * Maps domain entity property names to backend JSON property names.
      * @param entity - The entity to convert (domain model, uses camelCase).
-     * @returns The converted SeniorCitizenResource (for backend API, uses database field names).
+     * @returns The converted SeniorCitizenResource (for backend API, uses camelCase).
      */
     toResourceFromEntity(entity: SeniorCitizen): SeniorCitizenResource {
         return {
             id: entity.id,
-            org_id: entity.organizationId, // Entity: organizationId → BD: org_id
-            first_name: entity.firstName, // Entity: firstName → BD: first_name
-            last_name: entity.lastName, // Entity: lastName → BD: last_name
-            birth_date: entity.birthDate.toISOString().split('T')[0], // Entity: birthDate → BD: birth_date (Convert Date to ISO string YYYY-MM-DD)
-            age: entity.age, // Optional, computed from birth_date
-            gender: entity.gender, // Entity: gender → BD: gender
-            weight: entity.weight, // Entity: weight → BD: weight
-            dni: entity.dni, // Entity: dni → BD: dni
-            height: entity.height, // Entity: height → BD: height
-            profile_image: entity.imageUrl, // Entity: imageUrl → BD: profile_image
-            device_id: entity.deviceIot, // Entity: deviceIot → BD: device_id
-            assignedDoctorId: entity.assignedDoctorId ?? null, // For Doctor_assignments table (single doctor only)
-            assignedCaregiverId: entity.assignedCaregiverId ?? null, // For Caregiver_assignments table (single caregiver only)
+            organizationId: entity.organizationId,
+            firstName: entity.firstName,
+            lastName: entity.lastName,
+            birthDate: entity.birthDate instanceof Date ? entity.birthDate.toISOString().split('T')[0] : entity.birthDate,
+            age: entity.age,
+            gender: entity.gender,
+            weight: entity.weight,
+            dni: entity.dni,
+            height: entity.height,
+            imageUrl: entity.imageUrl,
+            deviceId: entity.deviceId,
+            assignedDoctorId: entity.assignedDoctorId ?? null,
+            assignedCaregiverId: entity.assignedCaregiverId ?? null,
             signalVitals: entity.signalVitals ? {
                 bloodPressure: entity.signalVitals.bloodPressure,
                 heartRate: entity.signalVitals.heartRate,

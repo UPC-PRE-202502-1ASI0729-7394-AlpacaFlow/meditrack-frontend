@@ -8,12 +8,12 @@ import { BaseEntity } from '../../../shared/infrastructure/base-entity';
 export class Organization implements BaseEntity {
     private _id: number;
     private _name: string;
-    private _type: 'clinica' | 'resident';
+    private _type: 'clinic' | 'resident';
 
     constructor(organization: {
         id?: number;
         name: string;
-        type: 'clinica' | 'resident';
+        type: 'clinic' | 'resident';
     }) {
         this._id = organization.id ?? 0;
         this._name = organization.name;
@@ -36,11 +36,11 @@ export class Organization implements BaseEntity {
         this._name = value;
     }
 
-    get type(): 'clinica' | 'resident' {
+    get type(): 'clinic' | 'resident' {
         return this._type;
     }
 
-    set type(value: 'clinica' | 'resident') {
+    set type(value: 'clinic' | 'resident') {
         this._type = value;
     }
 
@@ -48,7 +48,7 @@ export class Organization implements BaseEntity {
      * Domain logic: Checks if this organization is a clinic
      */
     isClinic(): boolean {
-        return this._type === 'clinica';
+        return this._type === 'clinic';
     }
 
     /**

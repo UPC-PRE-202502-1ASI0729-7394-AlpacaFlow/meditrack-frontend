@@ -27,7 +27,7 @@ export class OrganizationsAssembler implements
     return new Organization({
       id: resource.id,
       name: resource.name,
-      type: resource.type
+      type: resource.type // Both backend and frontend use 'clinic'
     });
   }
 
@@ -40,7 +40,7 @@ export class OrganizationsAssembler implements
     return {
       id: entity.id,
       name: entity.name,
-      type: entity.type
+      type: entity.type // Both backend and frontend use 'clinic'
     } as OrganizationResource;
   }
 }

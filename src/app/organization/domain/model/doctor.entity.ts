@@ -3,7 +3,7 @@ import { BaseEntity } from '../../../shared/infrastructure/base-entity';
 export class Doctor implements BaseEntity {
     private _id: number;
     private _organizationId: number;
-    private _userId: string;
+    private _userId: number | null = null;
     private _firstName: string;
     private _lastName: string;
     private _age: number;
@@ -16,7 +16,7 @@ export class Doctor implements BaseEntity {
     constructor(doctor: {
         id?: number;
         organizationId: number;
-        userId?: string; // Optional: backend will assign when creating new doctor
+        userId?: number | null;
         firstName?: string;
         lastName?: string;
         age?: number;
@@ -28,7 +28,7 @@ export class Doctor implements BaseEntity {
     }) {
         this._id = doctor.id ?? 0;
         this._organizationId = doctor.organizationId;
-        this._userId = doctor.userId ?? ''; // Empty string as default, backend will assign
+        this._userId = doctor.userId ?? null;
         this._firstName = doctor.firstName ?? '';
         this._lastName = doctor.lastName ?? '';
         this._age = doctor.age ?? 0;
@@ -46,10 +46,10 @@ export class Doctor implements BaseEntity {
         this._organizationId = value;
     }
 
-    get userId(): string {
+    get userId(): number | null {
         return this._userId;
     }
-    set userId(value: string) {
+    set userId(value: number | null) {
         this._userId = value;
     }
 
