@@ -6,6 +6,7 @@ import { SeniorCitizensApiEndpoint } from './senior-citizen-api-endpoint';
 import { OrganizationsApiEndpoint } from './organization-api-endpoint';
 import { AdminsApiEndpoint } from './admin-api-endpoint';
 import { DoctorAssignmentApiEndpoint } from './doctor-assignment-api-endpoint';
+import { CaregiverAssignmentApiEndpoint } from './caregiver-assignment-api-endpoint';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -29,6 +30,7 @@ export class OrganizationApi extends BaseApi {
   private readonly organizationsEndpoint: OrganizationsApiEndpoint;
   private readonly adminsEndpoint: AdminsApiEndpoint;
   private readonly doctorAssignmentEndpoint: DoctorAssignmentApiEndpoint;
+  private readonly caregiverAssignmentEndpoint: CaregiverAssignmentApiEndpoint;
 
   constructor(
     http: HttpClient) {
@@ -39,6 +41,7 @@ export class OrganizationApi extends BaseApi {
     this.organizationsEndpoint = new OrganizationsApiEndpoint(http);
     this.adminsEndpoint = new AdminsApiEndpoint(http);
     this.doctorAssignmentEndpoint = new DoctorAssignmentApiEndpoint(http);
+    this.caregiverAssignmentEndpoint = new CaregiverAssignmentApiEndpoint(http);
   }
 
   /**
@@ -300,6 +303,12 @@ export class OrganizationApi extends BaseApi {
     );
   }
 
+  getCaregiverByUserIdAndOrganizationId(userId: number, organizationId: number): Observable<Caregiver | null> {
+    return this.caregiversEndpoint.getByUserIdAndOrganizationId(userId, organizationId).pipe(
+        map((caregiver: Caregiver | null) => caregiver || null)
+    );
+  }
+
   /**
    * Assigns a senior citizen to a doctor using the doctor-assignments endpoint.
    * This creates the entry in the doctor_assignments table.
@@ -329,5 +338,36 @@ export class OrganizationApi extends BaseApi {
    */
   getSeniorCitizensByDoctorId(doctorId: number): Observable<SeniorCitizen[]> {
     return this.doctorAssignmentEndpoint.getSeniorCitizensByDoctorId(doctorId);
+  }
+
+  /**
+   * Assigns a senior citizen to a caregiver using the caregiver-assignments endpoint.
+   * This creates the entry in the caregiver_assignments table.
+   * @param caregiverId - The caregiver ID
+   * @param seniorCitizenId - The senior citizen ID
+   * @returns An Observable emitting the updated SeniorCitizen entity
+   */
+  assignSeniorCitizenToCaregiver(caregiverId: number, seniorCitizenId: number): Observable<SeniorCitizen> {
+    return this.caregiverAssignmentEndpoint.assignSeniorCitizenToCaregiver(caregiverId, seniorCitizenId);
+  }
+
+  /**
+   * Unassigns a senior citizen from a caregiver using the caregiver-assignments endpoint.
+   * This removes the entry from the caregiver_assignments table.
+   * @param caregiverId - The caregiver ID
+   * @param seniorCitizenId - The senior citizen ID
+   * @returns An Observable that completes when the unassignment is successful
+   */
+  unassignSeniorCitizenFromCaregiver(caregiverId: number, seniorCitizenId: number): Observable<void> {
+    return this.caregiverAssignmentEndpoint.unassignSeniorCitizenFromCaregiver(caregiverId, seniorCitizenId);
+  }
+
+  /**
+   * Gets all senior citizens assigned to a caregiver.
+   * @param caregiverId - The caregiver ID
+   * @returns An Observable emitting an array of SeniorCitizen entities
+   */
+  getSeniorCitizensByCaregiverId(caregiverId: number): Observable<SeniorCitizen[]> {
+    return this.caregiverAssignmentEndpoint.getSeniorCitizensByCaregiverId(caregiverId);
   }
 }

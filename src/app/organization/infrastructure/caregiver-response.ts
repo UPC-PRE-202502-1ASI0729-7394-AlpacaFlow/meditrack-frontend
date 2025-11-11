@@ -6,13 +6,12 @@ import { BaseResource, BaseResponse } from '../../shared/infrastructure/base-res
  */
 export interface CaregiverResource extends BaseResource {
     organizationId: number;
-    userId?: string;
+    userId?: number | null;
     firstName: string;
     lastName: string;
     phoneNumber: string;
     age?: number;
     email?: string;
-    specialty?: string;
     imageUrl?: string;
     assignedSeniorIds?: number[];
     createdAt?: Date | string;

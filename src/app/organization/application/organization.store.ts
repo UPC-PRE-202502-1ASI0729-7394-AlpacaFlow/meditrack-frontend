@@ -191,45 +191,76 @@ export class OrganizationStore {
     this.currentOrganizationIdSignal.set(organizationId);
 
     // Si se proporciona userId, buscar el admin/doctor/caregiver correspondiente para establecer el rol
-    // IMPORTANTE: Usar los métodos que validan tanto userId como organizationId para evitar conflictos
-    // cuando un Admin y un Doctor tienen el mismo userId pero en diferentes organizaciones
     if (userId) {
       this.currentUserIdSignal.set(userId);
-      
-      // Buscar admin por userId Y organizationId (valida que pertenezca a esta organización)
+
+      // Buscar admin por userId Y organizationId
       this.organizationApi.getAdminByUserIdAndOrganizationId(userId, organizationId).pipe(take(1)).subscribe({
         next: (admin) => {
           if (admin) {
-            // Admin encontrado en el backend para esta organización específica
             console.log(`Found admin in backend: userId=${userId}, organizationId=${organizationId}`);
             this.currentUserRoleSignal.set('admin');
             this.loadOrganizationDataWithId(userId, organizationId, 'admin');
           } else {
-            // No es admin en esta organización, intentar buscar doctor por userId Y organizationId
             console.log(`Admin not found for userId ${userId} in organization ${organizationId}, trying to find doctor...`);
+
+            // Intentar buscar doctor
             this.organizationApi.getDoctorByUserIdAndOrganizationId(userId, organizationId).pipe(take(1)).subscribe({
               next: (doctor) => {
                 if (doctor) {
-                  // Doctor encontrado en el backend para esta organización específica
                   console.log(`Found doctor in backend: userId=${userId}, organizationId=${organizationId}`);
                   this.currentUserRoleSignal.set('doctor');
                   this.loadOrganizationDataWithId(userId, organizationId, 'doctor');
                 } else {
-                  // No es doctor en esta organización, intentar buscar en admins de la organización
-                  console.log(`Doctor not found for userId ${userId} in organization ${organizationId}, trying to find admin in organization...`);
-                  this.findAndSetAdminFromOrganization(organizationId, userId);
+                  console.log(`Doctor not found for userId ${userId} in organization ${organizationId}, trying to find caregiver...`);
+
+                  // Intentar buscar caregiver
+                  this.organizationApi.getCaregiverByUserIdAndOrganizationId(userId, organizationId).pipe(take(1)).subscribe({
+                    next: (caregiver) => {
+                      if (caregiver) {
+                        console.log(`Found caregiver in backend: userId=${userId}, organizationId=${organizationId}`);
+                        this.currentUserRoleSignal.set('caregiver');
+                        this.loadOrganizationDataWithId(userId, organizationId, 'caregiver');
+                      } else {
+                        console.log(`Caregiver not found for userId ${userId} in organization ${organizationId}, trying to find admin in organization...`);
+                        this.findAndSetAdminFromOrganization(organizationId, userId);
+                      }
+                    },
+                    error: (err3) => {
+                      console.warn(`Error searching caregiver by userId and organizationId: ${err3.message}, trying to find admin in organization...`);
+                      this.findAndSetAdminFromOrganization(organizationId, userId);
+                    }
+                  });
                 }
               },
-              error: (err) => {
-                console.warn(`Error searching doctor by userId and organizationId: ${err.message}, trying to find admin in organization...`);
-                this.findAndSetAdminFromOrganization(organizationId, userId);
+              error: (err2) => {
+                console.warn(`Error searching doctor by userId and organizationId: ${err2.message}, trying to find caregiver...`);
+
+                // Si falla doctor, intentar caregiver
+                this.organizationApi.getCaregiverByUserIdAndOrganizationId(userId, organizationId).pipe(take(1)).subscribe({
+                  next: (caregiver) => {
+                    if (caregiver) {
+                      console.log(`Found caregiver in backend: userId=${userId}, organizationId=${organizationId}`);
+                      this.currentUserRoleSignal.set('caregiver');
+                      this.loadOrganizationDataWithId(userId, organizationId, 'caregiver');
+                    } else {
+                      console.log(`Caregiver not found for userId ${userId} in organization ${organizationId}, trying to find admin in organization...`);
+                      this.findAndSetAdminFromOrganization(organizationId, userId);
+                    }
+                  },
+                  error: (err3) => {
+                    console.warn(`Error searching caregiver by userId and organizationId: ${err3.message}, trying to find admin in organization...`);
+                    this.findAndSetAdminFromOrganization(organizationId, userId);
+                  }
+                });
               }
             });
           }
         },
         error: (err) => {
           console.warn(`Error searching admin by userId and organizationId: ${err.message}, trying to find doctor...`);
-          // Si falla buscar admin, intentar buscar doctor
+
+          // Si falla admin, intentar doctor
           this.organizationApi.getDoctorByUserIdAndOrganizationId(userId, organizationId).pipe(take(1)).subscribe({
             next: (doctor) => {
               if (doctor) {
@@ -237,26 +268,58 @@ export class OrganizationStore {
                 this.currentUserRoleSignal.set('doctor');
                 this.loadOrganizationDataWithId(userId, organizationId, 'doctor');
               } else {
-                console.log(`Doctor not found for userId ${userId} in organization ${organizationId}, trying to find admin in organization...`);
-                this.findAndSetAdminFromOrganization(organizationId, userId);
+                console.log(`Doctor not found for userId ${userId} in organization ${organizationId}, trying to find caregiver...`);
+
+                // Intentar caregiver
+                this.organizationApi.getCaregiverByUserIdAndOrganizationId(userId, organizationId).pipe(take(1)).subscribe({
+                  next: (caregiver) => {
+                    if (caregiver) {
+                      console.log(`Found caregiver in backend: userId=${userId}, organizationId=${organizationId}`);
+                      this.currentUserRoleSignal.set('caregiver');
+                      this.loadOrganizationDataWithId(userId, organizationId, 'caregiver');
+                    } else {
+                      console.log(`Caregiver not found for userId ${userId} in organization ${organizationId}, trying to find admin in organization...`);
+                      this.findAndSetAdminFromOrganization(organizationId, userId);
+                    }
+                  },
+                  error: (err3) => {
+                    console.warn(`Error searching caregiver by userId and organizationId: ${err3.message}, trying to find admin in organization...`);
+                    this.findAndSetAdminFromOrganization(organizationId, userId);
+                  }
+                });
               }
             },
             error: (err2) => {
-              console.warn(`Error searching doctor by userId and organizationId: ${err2.message}, trying to find admin in organization...`);
-              this.findAndSetAdminFromOrganization(organizationId, userId);
+              console.warn(`Error searching doctor by userId and organizationId: ${err2.message}, trying to find caregiver...`);
+              this.organizationApi.getCaregiverByUserIdAndOrganizationId(userId, organizationId).pipe(take(1)).subscribe({
+                next: (caregiver) => {
+                  if (caregiver) {
+                    console.log(`Found caregiver in backend: userId=${userId}, organizationId=${organizationId}`);
+                    this.currentUserRoleSignal.set('caregiver');
+                    this.loadOrganizationDataWithId(userId, organizationId, 'caregiver');
+                  } else {
+                    console.log(`Caregiver not found for userId ${userId} in organization ${organizationId}, trying to find admin in organization...`);
+                    this.findAndSetAdminFromOrganization(organizationId, userId);
+                  }
+                },
+                error: (err3) => {
+                  console.warn(`Error searching caregiver by userId and organizationId: ${err3.message}, trying to find admin in organization...`);
+                  this.findAndSetAdminFromOrganization(organizationId, userId);
+                }
+              });
             }
           });
         }
       });
     } else {
       // Si no se proporciona userId, solo cargar los datos de la organización
-      // Load all organization data from the backend
       this.loadOrganizationById(organizationId);
       this.loadDoctorsByOrganization(organizationId);
       this.loadCaregiversByOrganization(organizationId);
       this.loadSeniorCitizensByOrganization(organizationId);
     }
   }
+
 
   /**
    * Helper method to find an admin from an organization and set the role.
@@ -491,7 +554,7 @@ export class OrganizationStore {
       return doctor ? doctor.id : null;
     } else if (role === 'caregiver') {
       // Buscar caregiver por userId en los caregivers cargados
-      const caregiver = this.caregivers().find(c => c.userId === currentUserId.toString());
+      const caregiver = this.caregivers().find(c => c.userId === currentUserId);
       return caregiver ? caregiver.id : null;
     }
 
@@ -975,12 +1038,10 @@ export class OrganizationStore {
         this.caregiversSignal.update(caregivers =>
           caregivers.map(c => c.id === previousCaregiverId ? previousCaregiver : c)
         );
-        // Persist unassignment of previous caregiver
-        this.organizationApi.updateCaregiver(previousCaregiver).pipe(retry(2)).subscribe({
-          next: (updatedPreviousCaregiver) => {
-            this.caregiversSignal.update(caregivers =>
-              caregivers.map(c => c.id === previousCaregiverId ? updatedPreviousCaregiver : c)
-            );
+        // Persist unassignment of previous caregiver using the assignment endpoint
+        this.organizationApi.unassignSeniorCitizenFromCaregiver(previousCaregiverId, seniorCitizenId).pipe(retry(2)).subscribe({
+          next: () => {
+            console.log(`[Store] Successfully unassigned senior citizen ${seniorCitizenId} from previous caregiver ${previousCaregiverId}`);
           },
           error: err => console.error('Failed to persist previous caregiver unassignment:', err)
         });
@@ -999,16 +1060,39 @@ export class OrganizationStore {
       seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
     );
 
-    // Persist to API (backend will handle the junction table)
-    this.organizationApi.updateCaregiver(caregiver).pipe(retry(2)).subscribe({
-      next: (updatedCaregiver) => {
-        // Update with server response
-        this.caregiversSignal.update(caregivers =>
-          caregivers.map(c => c.id === caregiverId ? updatedCaregiver : c)
+    console.log(`[Store] Calling API to assign seniorCitizenId=${seniorCitizenId} to caregiverId=${caregiverId}`);
+    
+    // Persist to API using the caregiver-assignments endpoint (creates entry in caregiver_assignments table)
+    this.organizationApi.assignSeniorCitizenToCaregiver(caregiverId, seniorCitizenId).pipe(retry(2)).subscribe({
+      next: (updatedSeniorCitizen) => {
+        console.log(`[Store] Assignment successful. Updated senior citizen:`, {
+          id: updatedSeniorCitizen.id,
+          name: updatedSeniorCitizen.fullName,
+          assignedCaregiverId: updatedSeniorCitizen.assignedCaregiverId,
+          expectedCaregiverId: caregiverId
+        });
+        
+        // Update senior citizen with server response (backend is source of truth)
+        this.seniorCitizensSignal.update(seniorCitizens =>
+          seniorCitizens.map(sc => sc.id === seniorCitizenId ? updatedSeniorCitizen : sc)
         );
+        
+        // Reload caregivers to get updated assignedSeniorIds from backend
+        this.loadCaregiversByOrganization(caregiver.organizationId);
+        // Reload senior citizens to ensure we have the latest data from backend
+        // This ensures consistency, and since we no longer recalculate assignments,
+        // the backend's assignedCaregiverId will be preserved
+        this.loadSeniorCitizensByOrganization(caregiver.organizationId);
       },
       error: err => {
-        console.error('Failed to persist caregiver assignment:', err);
+        console.error('[Store] Failed to persist caregiver assignment:', err);
+        console.error('[Store] Error details:', {
+          status: err?.status,
+          statusText: err?.statusText,
+          message: err?.message,
+          error: err?.error,
+          url: err?.url
+        });
         // Revert optimistic update
         caregiver.unassignFromSenior(seniorCitizenId);
         seniorCitizen.assignedCaregiverId = previousCaregiverId;
@@ -1061,16 +1145,27 @@ export class OrganizationStore {
       seniorCitizens.map(sc => sc.id === seniorCitizenId ? seniorCitizen : sc)
     );
 
-    // Persist to API (backend will handle the junction table)
-    this.organizationApi.updateCaregiver(caregiver).pipe(retry(2)).subscribe({
-      next: (updatedCaregiver) => {
-        // Update with server response
-        this.caregiversSignal.update(caregivers =>
-          caregivers.map(c => c.id === caregiverId ? updatedCaregiver : c)
-        );
+    console.log(`[Store] Calling API to unassign seniorCitizenId=${seniorCitizenId} from caregiverId=${caregiverId}`);
+    
+    // Persist to API using the caregiver-assignments endpoint (removes entry from caregiver_assignments table)
+    this.organizationApi.unassignSeniorCitizenFromCaregiver(caregiverId, seniorCitizenId).pipe(retry(2)).subscribe({
+      next: () => {
+        console.log(`[Store] Unassignment successful: seniorCitizenId=${seniorCitizenId} from caregiverId=${caregiverId}`);
+        
+        // Reload caregivers to get updated assignedSeniorIds from backend
+        this.loadCaregiversByOrganization(caregiver.organizationId);
+        // Reload senior citizens to ensure we have the latest data from backend
+        this.loadSeniorCitizensByOrganization(caregiver.organizationId);
       },
       error: err => {
-        console.error('Failed to persist caregiver unassignment:', err);
+        console.error('[Store] Failed to persist caregiver unassignment:', err);
+        console.error('[Store] Error details:', {
+          status: err?.status,
+          statusText: err?.statusText,
+          message: err?.message,
+          error: err?.error,
+          url: err?.url
+        });
         // Revert optimistic update
         caregiver.assignToSenior(seniorCitizenId);
         seniorCitizen.assignedCaregiverId = caregiverId;

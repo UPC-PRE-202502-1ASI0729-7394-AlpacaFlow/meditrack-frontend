@@ -25,16 +25,20 @@ export class CaregiversAssembler implements
    * @returns The converted Caregiver entity (domain model, uses camelCase).
    */
   toEntityFromResource(resource: CaregiverResource): Caregiver {
+    let userId: number | null | undefined = resource.userId;
+    if (typeof resource.userId === 'string') {
+      userId = resource.userId ? parseInt(resource.userId, 10) : null;
+    }
+
     return new Caregiver({
       id: resource.id,
       organizationId: resource.organizationId,
-      userId: resource.userId, // Optional
+      userId: userId ?? null, // Optional
       firstName: resource.firstName,
       lastName: resource.lastName,
       phoneNumber: resource.phoneNumber,
       age: resource.age, // Optional
       email: resource.email, // Optional
-      specialty: resource.specialty ?? '', // Optional
       imageUrl: resource.imageUrl ?? '', // Optional
       assignedSeniorIds: resource.assignedSeniorIds ?? [] // From Caregiver_assignments table
     });
@@ -56,7 +60,6 @@ export class CaregiversAssembler implements
       phoneNumber: entity.phoneNumber,
       age: entity.age, // Optional
       email: entity.email, // Optional
-      specialty: entity.specialty, // Optional
       imageUrl: entity.imageUrl, // Optional
       assignedSeniorIds: entity.assignedSeniorIds // For Caregiver_assignments table
     } as CaregiverResource;

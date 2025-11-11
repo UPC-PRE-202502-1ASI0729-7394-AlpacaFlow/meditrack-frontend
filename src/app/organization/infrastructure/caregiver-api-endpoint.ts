@@ -40,5 +40,36 @@ export class CaregiversApiEndpoint extends
         })
       );
   }
+
+  getCaregiverByUserId(userId: number) {
+        const url = `${this.endpointUrl}/user/${userId}`;
+        console.log(`[API] Requesting caregiver from: ${url} (userId=${userId})`);
+        return this.http.get<CaregiverResource>(url)
+            .pipe(
+                map(response => {
+                    console.log(`[API] Raw response from server:`, response);
+                    const entity = this.assembler.toEntityFromResource(response);
+                    console.log(`[API] Transformed entity:`, entity);
+                    return entity;
+                })
+            );
+    }
+
+    getByUserIdAndOrganizationId(userId: number, organizationId: number) {
+        const url = `${this.endpointUrl}/user/${userId}/organization/${organizationId}`;
+        console.log(`[API] Requesting caregiver from: ${url} (userId=${userId}, organizationId=${organizationId})`);
+        return this.http.get<CaregiverResource>(url)
+            .pipe(
+                map(response => {
+                    console.log(`[API] Raw response from server:`, response);
+                    const entity = this.assembler.toEntityFromResource(response);
+                    console.log(`[API] Transformed entity:`, entity);
+                    return entity;
+                })
+            );
+    }
+
+
+
 }
 

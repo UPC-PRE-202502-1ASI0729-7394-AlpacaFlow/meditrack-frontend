@@ -35,7 +35,6 @@ export class CaregiverForm implements OnChanges {
       lastName: ['', Validators.required],
       age: [null, [Validators.required, Validators.min(18)]],
       email: ['', [Validators.required, Validators.email]],
-      specialty: ['', Validators.required],
       phoneNumber: ['', Validators.required],
       imageUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)(\?.*)?$/i)]],
       organizationId: [organizationId] // Get from store (patrón de relatives)
@@ -100,7 +99,6 @@ export class CaregiverForm implements OnChanges {
         lastName: this.caregiver.lastName,
         age: this.caregiver.age,
         email: this.caregiver.email,
-        specialty: this.caregiver.specialty,
         phoneNumber: this.caregiver.phoneNumber,
         imageUrl: this.caregiver.imageUrl,
         organizationId: this.caregiver.organizationId
@@ -149,7 +147,6 @@ export class CaregiverForm implements OnChanges {
       lastName: this.form.value.lastName,
       age: Number(this.form.value.age),
       email: email,
-      specialty: this.form.value.specialty,
       phoneNumber: this.form.value.phoneNumber,
       imageUrl: this.form.value.imageUrl || 'https://via.placeholder.com/150x150/CCCCCC/FFFFFF?text=Caregiver',
       organizationId: organizationId // Use from user context, not form value

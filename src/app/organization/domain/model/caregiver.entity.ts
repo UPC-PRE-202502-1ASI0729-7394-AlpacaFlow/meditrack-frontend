@@ -3,12 +3,11 @@ import { BaseEntity } from '../../../shared/infrastructure/base-entity';
 export class Caregiver implements BaseEntity{
     private _id: number;
     private _organizationId: number;
-    private _userId: string;
+    private _userId: number | null = null;
     private _firstName: string;
     private _lastName: string;
     private _age: number;
     private _email: string;
-    private _specialty: string;
     private _phoneNumber: string;
     private _imageUrl: string;
     private _assignedSeniorIds: number[];
@@ -16,24 +15,22 @@ export class Caregiver implements BaseEntity{
     constructor(caregiver: {
         id?: number;
         organizationId: number;
-        userId?: string; // Optional: backend will assign when creating new caregiver
+        userId?: number | null;
         firstName?: string;
         lastName?: string;
         age?: number;
         email?: string;
-        specialty?: string;
         phoneNumber?: string;
         imageUrl?: string;
         assignedSeniorIds?: number[];
     }) {
         this._id = caregiver.id ?? 0;
         this._organizationId = caregiver.organizationId;
-        this._userId = caregiver.userId ?? ''; // Empty string as default, backend will assign
+        this._userId = caregiver.userId ?? null;
         this._firstName = caregiver.firstName ?? '';
         this._lastName = caregiver.lastName ?? '';
         this._age = caregiver.age ?? 0;
         this._email = caregiver.email ?? '';
-        this._specialty = caregiver.specialty ?? '';
         this._phoneNumber = caregiver.phoneNumber ?? '';
         this._imageUrl = caregiver.imageUrl ?? '';
         this._assignedSeniorIds = caregiver.assignedSeniorIds ?? [];
@@ -46,10 +43,10 @@ export class Caregiver implements BaseEntity{
         this._organizationId = value;
     }
 
-    get userId(): string {
+    get userId(): number | null {
         return this._userId;
     }
-    set userId(value: string) {
+    set userId(value: number | null) {
         this._userId = value;
     }
 
@@ -86,13 +83,6 @@ export class Caregiver implements BaseEntity{
     }
     set email(value: string) {
         this._email = value;
-    }
-
-    get specialty(): string {
-        return this._specialty;
-    }
-    set specialty(value: string) {
-        this._specialty = value;
     }
 
     get phoneNumber(): string {
